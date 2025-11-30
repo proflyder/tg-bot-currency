@@ -1,0 +1,87 @@
+<configuration>
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Console Appender - для локальной разработки -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{36}) - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- JSON Appender - для продакшна (структурированные логи) -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>request_id</includeMdcKeyName>
+            <includeMdcKeyName>user_id</includeMdcKeyName>
+        </encoder>
+    </appender>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- File Appender - логи в файл с ротацией -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/currency-bot.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- Ротация каждый день -->
+            <fileNamePattern>logs/currency-bot.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- Хранить логи 30 дней -->
+            <maxHistory>30</maxHistory>
+            <!-- Максимальный размер всех логов -->
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Логгеры для наших пакетов -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Наш код - детальное логирование -->
+    <logger name="dev.proflyder.currency" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Парсер - особо важно логировать -->
+    <logger name="dev.proflyder.currency.data.remote.parser" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Scheduler - важные события -->
+    <logger name="dev.proflyder.currency.scheduler" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Внешние библиотеки - меньше шума -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Ktor - только важное -->
+    <logger name="io.ktor" level="INFO"/>
+
+    <!-- HTTP Client - запросы/ответы -->
+    <logger name="io.ktor.client.HttpClient" level="INFO"/>
+
+    <!-- Koin DI -->
+    <logger name="org.koin" level="INFO"/>
+
+    <!-- Netty -->
+    <logger name="io.netty" level="WARN"/>
+
+    <!-- Jetty -->
+    <logger name="org.eclipse.jetty" level="WARN"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Root Logger -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

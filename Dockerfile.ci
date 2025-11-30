@@ -1,0 +1,33 @@
+# ═══════════════════════════════════════════════════════════════════
+# CI/CD Dockerfile - использует предварительно собранный JAR из CI
+# ═══════════════════════════════════════════════════════════════════
+#
+# Этот Dockerfile используется в GitHub Actions CI/CD pipeline.
+# JAR файл уже собран в предыдущем job и передан через artifacts.
+#
+# Использование:
+#   docker build -f Dockerfile.ci -t currency-bot .
+#
+# ═══════════════════════════════════════════════════════════════════
+
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+
+# Копируем предварительно собранный JAR из CI artifacts
+# CI положит JAR в build/libs/*-all.jar
+COPY build/libs/*-all.jar app.jar
+
+# Создаём директории для логов и данных
+RUN mkdir -p /app/logs && \
+    mkdir -p /app/data
+
+# Порт приложения
+EXPOSE 8080
+
+# Переменные окружения (будут переопределены через docker-compose или docker run)
+ENV BOT_TOKEN=""
+ENV CHAT_ID=""
+
+# Запуск приложения
+ENTRYPOINT ["java", "-jar", "app.jar"]

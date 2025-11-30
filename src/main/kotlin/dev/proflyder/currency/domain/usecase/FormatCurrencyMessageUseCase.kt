@@ -1,0 +1,86 @@
+package dev.proflyder.currency.domain.usecase
+
+import dev.proflyder.currency.domain.model.AlertLevel
+import dev.proflyder.currency.domain.model.ChangeDirection
+import dev.proflyder.currency.domain.model.CurrencyAlert
+import dev.proflyder.currency.domain.model.CurrencyRate
+import kotlin.math.abs
+
+/**
+ * UseCase для форматирования сообщений о курсах с алертами
+ */
+class FormatCurrencyMessageUseCase {
+
+    /**
+     * Форматирует сообщение о текущих курсах с опциональными алертами
+     * @param rates Текущие курсы
+     * @param alerts Список алертов (может быть пустым)
+     * @return Отформатированное сообщение
+     */
+    operator fun invoke(rates: CurrencyRate, alerts: List<CurrencyAlert> = emptyList()): String {
+        return buildString {
+            // Основная информация о курсах
+            appendLine("💱 *Курсы валют на kurs.kz*")
+            appendLine()
+            appendLine("🇺🇸 *USD → KZT*")
+            appendLine("  Покупка: ${"%.2f".format(rates.usdToKzt.buy)} ₸")
+            appendLine("  Продажа: ${"%.2f".format(rates.usdToKzt.sell)} ₸")
+            appendLine()
+            appendLine("🇷🇺 *RUB → KZT*")
+            appendLine("  Покупка: ${"%.2f".format(rates.rubToKzt.buy)} ₸")
+            appendLine("  Продажа: ${"%.2f".format(rates.rubToKzt.sell)} ₸")
+
+            // Если есть алерты - добавляем их
+            if (alerts.isNotEmpty()) {
+                // Разделяем алерты по уровням
+                val warnings = alerts.filter { it.level == AlertLevel.WARNING }
+                val critical = alerts.filter { it.level == AlertLevel.CRITICAL }
+
+                // Предупреждения
+                if (warnings.isNotEmpty()) {
+                    appendLine()
+                    appendLine("─────────────────────────")
+                    appendLine("⚠️ *ПРЕДУПРЕЖДЕНИЯ*")
+                    appendLine()
+                    warnings.forEach { alert ->
+                        append(formatAlert(alert))
+                    }
+                }
+
+                // Критические изменения
+                if (critical.isNotEmpty()) {
+                    appendLine()
+                    appendLine("─────────────────────────")
+                    appendLine("🚨 *КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ*")
+                    appendLine()
+                    critical.forEach { alert ->
+                        append(formatAlert(alert))
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Форматирует один алерт
+     */
+    private fun formatAlert(alert: CurrencyAlert): String {
+        val directionEmoji = when (alert.direction) {
+            ChangeDirection.UP -> "📈"
+            ChangeDirection.DOWN -> "📉"
+        }
+
+        val changeVerb = when (alert.direction) {
+            ChangeDirection.UP -> "вырос"
+            ChangeDirection.DOWN -> "упал"
+        }
+
+        return buildString {
+            append("$directionEmoji ${alert.pair.emoji} ${alert.pair.displayName} ")
+            append("$changeVerb на ${"%.2f".format(abs(alert.changePercent))}%% ")
+            appendLine("за ${alert.period.displayName}")
+            appendLine("   Было: ${"%.2f".format(alert.oldRate)} ₸ → Сейчас: ${"%.2f".format(alert.newRate)} ₸")
+            appendLine()
+        }
+    }
+}

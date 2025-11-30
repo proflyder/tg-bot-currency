@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  currency-bot:
+    # Если DOCKER_IMAGE не указан в .env -> будет собирать локально (build)
+    # Если DOCKER_IMAGE указан -> будет использовать готовый образ из GHCR
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${DOCKER_IMAGE:-currency-bot:local}
+
+    container_name: currency-bot
+
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+      - CHAT_ID=${CHAT_ID}
+      - SCHEDULER_CRON=${SCHEDULER_CRON:-0 0 * * * ?}
+      - DATABASE_PATH=/app/data/currency-history
+
+    ports:
+      - "8080:8080"
+
+    # ═══════════════════════════════════════════════════════════════════
+    # Volumes - сохранение логов и данных между редеплоями
+    # ═══════════════════════════════════════════════════════════════════
+    volumes:
+      # Вариант 1: Named volumes (рекомендуется для продакшна)
+      # Docker управляет хранением, данные сохраняются между перезапусками
+      - currency-bot-logs:/app/logs
+      - currency-bot-data:/app/data
+
+      # Вариант 2: Bind mounts (закомментирован, используй для локальной разработки)
+      # Данные доступны напрямую в файловой системе хоста
+      # - ./logs:/app/logs
+      # - ./data:/app/data
+
+    restart: unless-stopped
+
+# ═══════════════════════════════════════════════════════════════════
+# Named Volumes
+# ═══════════════════════════════════════════════════════════════════
+volumes:
+  currency-bot-logs:
+    driver: local
+  currency-bot-data:
+    driver: local
+
+# ═══════════════════════════════════════════════════════════════════
+# Как использовать:
+# ═══════════════════════════════════════════════════════════════════
+#
+# ЗАПУСК:
+# ───────────────────────────────────────────────────────────────────
+# docker-compose up -d          # Запустить в фоне
+# docker-compose logs -f        # Следить за логами
+#
+# ПРОСМОТР ЛОГОВ:
+# ───────────────────────────────────────────────────────────────────
+# docker logs -f currency-bot                       # Логи из stdout
+# docker exec currency-bot tail -f /app/logs/currency-bot.log  # Из файла
+# docker cp currency-bot:/app/logs/currency-bot.log ./logs.txt # Скопировать
+#
+# РЕДЕПЛОЙ С СОХРАНЕНИЕМ ЛОГОВ:
+# ───────────────────────────────────────────────────────────────────
+# docker-compose down           # Остановить
+# docker-compose pull           # Скачать новую версию (если из GHCR)
+# docker-compose up -d          # Запустить (логи сохранятся!)
+#
+# УПРАВЛЕНИЕ VOLUMES:
+# ───────────────────────────────────────────────────────────────────
+# docker volume ls                          # Список volumes
+# docker volume inspect currency-bot-logs  # Информация о volume
+# docker system df -v                       # Размер volumes
+#
+# BACKUP ЛОГОВ:
+# ───────────────────────────────────────────────────────────────────
+# docker run --rm -v currency-bot-logs:/source -v $(pwd):/backup \
+#   alpine tar czf /backup/logs-backup.tar.gz -C /source .
+#
+# ОЧИСТКА СТАРЫХ ЛОГОВ (старше 30 дней):
+# ───────────────────────────────────────────────────────────────────
+# docker exec currency-bot find /app/logs -name "*.log" -mtime +30 -delete
+#
+# ═══════════════════════════════════════════════════════════════════
+#
+# ЛОКАЛЬНАЯ РАЗРАБОТКА (сборка из исходников):
+# ─────────────────────────────────────────────
+# 1. В .env НЕ указывай переменную DOCKER_IMAGE
+# 2. Запусти: docker-compose up --build
+#
+# Что произойдёт:
+#   - Docker соберёт образ из Dockerfile
+#   - Образ будет называться "currency-bot:local"
+#   - Запустит контейнер с этим образом
+#
+#
+# ПРОДАКШН (использование готового образа из GHCR):
+# ───────────────────────────────────────────────────
+# 1. В .env укажи: DOCKER_IMAGE=ghcr.io/username/currency-bot:latest
+# 2. Запусти: docker-compose pull && docker-compose up -d
+#
+# Что произойдёт:
+#   - Docker скачает образ из GitHub Container Registry
+#   - Образ будет называться "ghcr.io/username/currency-bot:latest"
+#   - Запустит контейнер с этим образом
+#   - Build будет проигнорирован (образ уже готов)
+#
+# ═══════════════════════════════════════════════════════════════════

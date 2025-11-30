@@ -1,0 +1,148 @@
+# ═══════════════════════════════════════════════════════════════════
+# Currency Bot - Documentation Table of Contents
+# ═══════════════════════════════════════════════════════════════════
+
+meta:
+  title: "Currency Bot Documentation"
+  version: "1.0.0"
+  last_updated: "2025-01-30"
+  description: "Telegram бот для отслеживания курсов валют с kurs.kz"
+  naming_convention: "kebab-case"
+
+# Главные документы
+root:
+  - path: ../README.md
+    title: "README - Обзор проекта"
+    required: true
+
+  - path: index.md
+    title: "Documentation Index"
+    required: true
+
+  - path: AGENT-ONBOARDING.md
+    title: "Agent Onboarding Guide"
+    tags: [onboarding, ai-agents, getting-started]
+    required: true
+
+  - path: readme.md
+    title: "Documentation README"
+    required: true
+
+  - path: contributing.md
+    title: "Contributing Guide"
+    required: true
+
+# Руководства
+guides:
+  - path: guides/quickstart.md
+    title: "Быстрый старт"
+    tags: [getting-started, beginner]
+    required: true
+
+  - path: guides/logging.md
+    title: "Logging Best Practices"
+    tags: [development, logging, best-practices]
+    required: true
+
+  - path: guides/get-chat-id.md
+    title: "Get Chat ID"
+    tags: [setup, telegram, chat-id]
+    required: true
+
+  - path: guides/configuration.md
+    title: "Конфигурация"
+    tags: [configuration, setup]
+    required: false
+
+  - path: guides/development.md
+    title: "Руководство разработчика"
+    tags: [development, contributing]
+    required: false
+
+# Архитектура
+architecture:
+  - path: architecture/overview.md
+    title: "Обзор архитектуры"
+    tags: [architecture, design]
+    required: false
+
+  - path: architecture/data-flow.md
+    title: "Поток данных"
+    tags: [architecture, data-flow]
+    required: false
+
+  - path: architecture/dependencies.md
+    title: "Зависимости проекта"
+    tags: [dependencies, libraries]
+    required: false
+
+# Деплой
+deployment:
+  - path: deployment/docker-volumes.md
+    title: "Docker Volumes - Сохранение логов"
+    tags: [docker, deployment, volumes]
+    required: true
+
+  - path: deployment/ci-cd-guide.md
+    title: "CI/CD Guide"
+    tags: [ci-cd, github-actions, deployment]
+    required: true
+
+  - path: deployment/gcp-deployment.md
+    title: "GCP Deployment - Автодеплой на Google Cloud"
+    tags: [gcp, deployment, automation, production]
+    required: true
+
+  - path: deployment/production.md
+    title: "Production Deployment"
+    tags: [deployment, production]
+    required: false
+
+  - path: deployment/monitoring.md
+    title: "Мониторинг и алерты"
+    tags: [monitoring, production]
+    required: false
+
+# Скрипты
+scripts:
+  - path: scripts/readme.md
+    title: "Scripts Overview"
+    tags: [scripts, utilities]
+    required: true
+
+  - path: scripts/logs-utility.md
+    title: "Logs Utility Script"
+    tags: [scripts, logging]
+    required: false
+
+# API
+api:
+  - path: api/telegram-api.md
+    title: "Telegram Bot API"
+    tags: [api, telegram]
+    required: false
+
+  - path: api/kurs-kz-parser.md
+    title: "Kurs.kz Parser"
+    tags: [api, parser]
+    required: false
+
+# Troubleshooting
+troubleshooting:
+  - path: troubleshooting/common-issues.md
+    title: "Частые проблемы"
+    tags: [troubleshooting, faq]
+    required: false
+
+  - path: troubleshooting/debug.md
+    title: "Отладка проблем"
+    tags: [troubleshooting, debug]
+    required: false
+
+# Валидация
+validation:
+  check_required: true
+  check_links: true
+  check_formatting: false
+  allowed_extensions: [".md"]
+  naming_convention: "kebab-case"
