@@ -34,7 +34,8 @@ class CurrencyRatesJobTest {
             chatId = "test-chat-id",
             schedulerCron = "0 0 * * * ?",
             databasePath = "mem:test-db",
-            unkeyRootKey = "test-unkey-root-key"
+            unkeyRootKey = "test-unkey-root-key",
+            internalApiKey = "test-internal-key"
         )
 
         // Мокаем Quartz контекст
@@ -64,31 +65,31 @@ class CurrencyRatesJobTest {
         @Test
         fun `должен вызвать SendCurrencyRatesUseCase с правильным chatId`() = runTest {
             // Arrange
-            coEvery { sendCurrencyRatesUseCase(any()) } returns Result.success(Unit)
+            coEvery { sendCurrencyRatesUseCase(any(), any()) } returns Result.success(Unit)
 
             // Act
             job.execute(jobExecutionContext)
 
             // Assert
-            coVerify(exactly = 1) { sendCurrencyRatesUseCase("test-chat-id") }
+            coVerify(exactly = 1) { sendCurrencyRatesUseCase("test-chat-id", false) }
         }
 
         @Test
         fun `должен успешно выполниться когда use case возвращает success`() = runTest {
             // Arrange
-            coEvery { sendCurrencyRatesUseCase(any()) } returns Result.success(Unit)
+            coEvery { sendCurrencyRatesUseCase(any(), any()) } returns Result.success(Unit)
 
             // Act & Assert - не должно быть исключений
             job.execute(jobExecutionContext)
 
             // Verify
-            coVerify(exactly = 1) { sendCurrencyRatesUseCase(any()) }
+            coVerify(exactly = 1) { sendCurrencyRatesUseCase(any(), any()) }
         }
 
         @Test
         fun `должен получить зависимости из JobDataMap`() = runTest {
             // Arrange
-            coEvery { sendCurrencyRatesUseCase(any()) } returns Result.success(Unit)
+            coEvery { sendCurrencyRatesUseCase(any(), any()) } returns Result.success(Unit)
 
             // Act
             job.execute(jobExecutionContext)
@@ -107,38 +108,38 @@ class CurrencyRatesJobTest {
         fun `должен продолжить выполнение если use case возвращает failure`() = runTest {
             // Arrange
             val error = Exception("Test error")
-            coEvery { sendCurrencyRatesUseCase(any()) } returns Result.failure(error)
+            coEvery { sendCurrencyRatesUseCase(any(), any()) } returns Result.failure(error)
 
             // Act & Assert - не должно падать
             job.execute(jobExecutionContext)
 
             // Verify
-            coVerify(exactly = 1) { sendCurrencyRatesUseCase(any()) }
+            coVerify(exactly = 1) { sendCurrencyRatesUseCase(any(), any()) }
         }
 
         @Test
         fun `должен обработать исключение при выполнении use case`() = runTest {
             // Arrange
-            coEvery { sendCurrencyRatesUseCase(any()) } throws RuntimeException("Unexpected error")
+            coEvery { sendCurrencyRatesUseCase(any(), any()) } throws RuntimeException("Unexpected error")
 
             // Act & Assert - не должно падать
             job.execute(jobExecutionContext)
 
             // Verify что use case был вызван
-            coVerify(exactly = 1) { sendCurrencyRatesUseCase(any()) }
+            coVerify(exactly = 1) { sendCurrencyRatesUseCase(any(), any()) }
         }
 
         @Test
         fun `должен обработать null fireTime`() = runTest {
             // Arrange
             every { jobExecutionContext.fireTime } returns null
-            coEvery { sendCurrencyRatesUseCase(any()) } returns Result.success(Unit)
+            coEvery { sendCurrencyRatesUseCase(any(), any()) } returns Result.success(Unit)
 
             // Act & Assert - не должно падать
             job.execute(jobExecutionContext)
 
             // Verify
-            coVerify(exactly = 1) { sendCurrencyRatesUseCase(any()) }
+            coVerify(exactly = 1) { sendCurrencyRatesUseCase(any(), any()) }
         }
     }
 
@@ -154,16 +155,17 @@ class CurrencyRatesJobTest {
                 chatId = "custom-chat-123",
                 schedulerCron = "0 0 * * * ?",
                 databasePath = "mem:custom-db",
-                unkeyRootKey = "test-unkey-root-key"
+                unkeyRootKey = "test-unkey-root-key",
+                internalApiKey = "test-internal-key"
             )
             jobDataMap["config"] = customConfig
-            coEvery { sendCurrencyRatesUseCase(any()) } returns Result.success(Unit)
+            coEvery { sendCurrencyRatesUseCase(any(), any()) } returns Result.success(Unit)
 
             // Act
             job.execute(jobExecutionContext)
 
             // Assert
-            coVerify { sendCurrencyRatesUseCase("custom-chat-123") }
+            coVerify { sendCurrencyRatesUseCase("custom-chat-123", false) }
         }
 
         @Test
@@ -178,7 +180,7 @@ class CurrencyRatesJobTest {
 
             // Assert
             coVerify(exactly = 1) { anotherUseCase(any()) }
-            coVerify(exactly = 0) { sendCurrencyRatesUseCase(any()) }
+            coVerify(exactly = 0) { sendCurrencyRatesUseCase(any(), any()) }
         }
     }
 }

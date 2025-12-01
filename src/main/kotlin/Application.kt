@@ -31,7 +31,8 @@ fun Application.module() {
         chatId = environment.config.property("bot.chatId").getString(),
         schedulerCron = environment.config.property("scheduler.cron").getString(),
         databasePath = environment.config.property("database.path").getString(),
-        unkeyRootKey = environment.config.property("unkey.rootKey").getString()
+        unkeyRootKey = environment.config.property("unkey.rootKey").getString(),
+        internalApiKey = environment.config.property("api.internalKey").getString()
     )
 
     // Настраиваем Koin

@@ -89,7 +89,7 @@ jobs:
   docker:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    needs: [test, build]
+    needs: [ test, build ]
     permissions:
       contents: read
       packages: write  # Нужно для публикации в GHCR
@@ -161,11 +161,14 @@ jobs:
 
       # SSH в VM и деплой через gcloud compute ssh
       - name: Deploy to VM
+        env:
+          VM_NAME: ${{ secrets.GCC_VM_NAME }}
+          VM_ZONE: ${{ secrets.GCC_VM_ZONE }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
+          UNKEY_INTERNAL_KEY: ${{ secrets.UNKEY_INTERNAL_KEY }}
         run: |
-          # Получаем имя VM и зону из секретов
-          VM_NAME="${{ secrets.GCC_VM_NAME }}"
-          VM_ZONE="${{ secrets.GCC_VM_ZONE }}"
-
           # Проверка обязательных секретов
           if [ -z "$VM_NAME" ]; then
             echo "❌ ERROR: GCC_VM_NAME secret is not set!"
@@ -203,10 +206,12 @@ jobs:
                 -p 8080:8080 \
                 -v /var/log/currency-bot:/app/logs \
                 -v /var/data/currency-bot:/app/data \
-                -e BOT_TOKEN='${{ secrets.BOT_TOKEN }}' \
-                -e CHAT_ID='${{ secrets.CHAT_ID }}' \
+                -e BOT_TOKEN=$BOT_TOKEN \
+                -e CHAT_ID=$CHAT_ID \
                 -e SCHEDULER_CRON='0 0 * * * ?' \
                 -e DATABASE_PATH=/app/data/currency-history \
+                -e UNKEY_ROOT_KEY=$UNKEY_ROOT_KEY \
+                -e INTERNAL_API_KEY=$UNKEY_INTERNAL_KEY \
                 ghcr.io/${{ github.repository }}:latest
 
               echo '✅ Deployment completed!'
@@ -217,10 +222,10 @@ jobs:
 
       # Проверка здоровья после деплоя
       - name: Health check
+        env:
+          VM_NAME: ${{ secrets.GCC_VM_NAME }}
+          VM_ZONE: ${{ secrets.GCC_VM_ZONE }}
         run: |
-          VM_NAME="${{ secrets.GCC_VM_NAME }}"
-          VM_ZONE="${{ secrets.GCC_VM_ZONE }}"
-
           echo "🔍 Checking container status..."
           gcloud compute ssh "$VM_NAME" \
             --zone="$VM_ZONE" \

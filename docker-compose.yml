@@ -17,6 +17,7 @@ services:
       - SCHEDULER_CRON=${SCHEDULER_CRON:-0 0 * * * ?}
       - DATABASE_PATH=/app/data/currency-history
       - UNKEY_ROOT_KEY=${UNKEY_ROOT_KEY}
+      - UNKEY_INTERNAL_KEY=${UNKEY_INTERNAL_KEY}
 
     ports:
       - "8080:8080"

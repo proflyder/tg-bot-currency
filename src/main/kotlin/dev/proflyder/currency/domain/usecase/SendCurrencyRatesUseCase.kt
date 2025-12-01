@@ -15,7 +15,7 @@ class SendCurrencyRatesUseCase(
 ) {
     private val logger = logger()
 
-    suspend operator fun invoke(chatId: String): Result<Unit> {
+    suspend operator fun invoke(chatId: String, forceNotification: Boolean = false): Result<Unit> {
         return try {
             logger.info("Fetching currency rates...")
             val ratesResult = currencyRepository.getCurrentRates()
@@ -44,9 +44,16 @@ class SendCurrencyRatesUseCase(
 
                     alertsResult.fold(
                         onSuccess = { alerts ->
-                            // 3. Если есть алерты - отправляем сообщение
-                            if (alerts.isNotEmpty()) {
-                                logger.info("Found ${alerts.size} alerts, sending message to Telegram")
+                            // 3. Отправляем сообщение если есть алерты ИЛИ включен forceNotification
+                            val shouldSendMessage = alerts.isNotEmpty() || forceNotification
+
+                            if (shouldSendMessage) {
+                                if (forceNotification && alerts.isEmpty()) {
+                                    logger.info("Force notification enabled, sending message even without alerts")
+                                } else {
+                                    logger.info("Found ${alerts.size} alerts, sending message to Telegram")
+                                }
+
                                 val message = formatMessageUseCase(rates, alerts)
                                 logger.debug("Message content:\n$message")
 

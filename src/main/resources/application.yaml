@@ -18,3 +18,6 @@ database:
 
 unkey:
     rootKey: ${UNKEY_ROOT_KEY:your-unkey-root-key-here}
+
+api:
+    internalKey: ${INTERNAL_API_KEY:your-internal-api-key-here}

@@ -28,6 +28,10 @@ EXPOSE 8080
 # Переменные окружения (будут переопределены через docker-compose или docker run)
 ENV BOT_TOKEN=""
 ENV CHAT_ID=""
+ENV SCHEDULER_CRON=""
+ENV DATABASE_PATH=""
+ENV UNKEY_ROOT_KEY=""
+ENV UNKEY_INTERNAL_KEY=""
 
 # Запуск приложения
 ENTRYPOINT ["java", "-jar", "app.jar"]

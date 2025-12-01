@@ -1,5 +1,6 @@
 package dev.proflyder.currency.di
 
+import dev.proflyder.currency.data.remote.api.TriggerApiClient
 import dev.proflyder.currency.data.remote.parser.KursKzParser
 import dev.proflyder.currency.data.remote.telegram.TelegramApi
 import dev.proflyder.currency.data.remote.unkey.UnkeyClient
@@ -9,12 +10,15 @@ import dev.proflyder.currency.data.repository.TelegramRepositoryImpl
 import dev.proflyder.currency.domain.repository.CurrencyHistoryRepository
 import dev.proflyder.currency.domain.repository.CurrencyRepository
 import dev.proflyder.currency.domain.repository.TelegramRepository
+import dev.proflyder.currency.domain.telegram.TelegramCommandHandler
 import dev.proflyder.currency.domain.usecase.CheckCurrencyThresholdsUseCase
 import dev.proflyder.currency.domain.usecase.FormatCurrencyMessageUseCase
 import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
 import dev.proflyder.currency.domain.usecase.GetLatestCurrencyRateUseCase
 import dev.proflyder.currency.domain.usecase.SendCurrencyRatesUseCase
 import dev.proflyder.currency.presentation.controller.CurrencyHistoryController
+import dev.proflyder.currency.presentation.controller.TelegramWebhookController
+import dev.proflyder.currency.presentation.controller.TriggerController
 import dev.proflyder.currency.scheduler.QuartzSchedulerManager
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -45,6 +49,7 @@ val appModule = module {
     single { TelegramApi(get(), get<AppConfig>().botToken) }
     single { KursKzParser(get()) }
     single { UnkeyClient(get(), get<AppConfig>().unkeyRootKey) }
+    single { TriggerApiClient(get(), get<AppConfig>().internalApiKey) }
 
     // Data Layer - Repositories
     single<CurrencyRepository> { CurrencyRepositoryImpl(get()) }
@@ -62,7 +67,12 @@ val appModule = module {
 
     // Presentation Layer - Controllers
     single { CurrencyHistoryController(get(), get()) }
+    single { TriggerController(get(), get()) }
+    single { TelegramWebhookController(get()) }
 
     // Scheduler
     single { QuartzSchedulerManager(get(), get()) }
+
+    // Telegram Bot
+    single { TelegramCommandHandler(get(), get()) }
 }

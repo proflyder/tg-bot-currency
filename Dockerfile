@@ -47,6 +47,10 @@ EXPOSE 8080
 # Set environment variables (will be overridden by docker-compose or docker run)
 ENV BOT_TOKEN=""
 ENV CHAT_ID=""
+ENV SCHEDULER_CRON=""
+ENV DATABASE_PATH=""
+ENV UNKEY_ROOT_KEY=""
+ENV UNKEY_INTERNAL_KEY=""
 
 # Run application
 ENTRYPOINT ["java", "-jar", "app.jar"]

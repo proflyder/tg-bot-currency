@@ -5,5 +5,6 @@ data class AppConfig(
     val chatId: String,
     val schedulerCron: String,
     val databasePath: String,
-    val unkeyRootKey: String
+    val unkeyRootKey: String,
+    val internalApiKey: String  // API ключ для вызова внутренних endpoints
 )

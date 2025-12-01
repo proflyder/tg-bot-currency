@@ -356,7 +356,8 @@ class AppModuleTest : KoinTest {
                 chatId = "test-chat-456",
                 schedulerCron = "0 0 */2 * * ?",
                 databasePath = "mem:custom-db",
-                unkeyRootKey = "test-unkey-root-key"
+                unkeyRootKey = "test-unkey-root-key",
+                internalApiKey = "test-internal-key"
             )
 
             startKoin {
@@ -383,14 +384,16 @@ class AppModuleTest : KoinTest {
         chatId: String = "test-chat-id",
         schedulerCron: String = "0 0 * * * ?",
         databasePath: String = "mem:test-db",
-        unkeyRootKey: String = "test-unkey-root-key"
+        unkeyRootKey: String = "test-unkey-root-key",
+        internalApiKey: String = "test-internal-key"
     ): AppConfig {
         return AppConfig(
             botToken = botToken,
             chatId = chatId,
             schedulerCron = schedulerCron,
             databasePath = databasePath,
-            unkeyRootKey = unkeyRootKey
+            unkeyRootKey = unkeyRootKey,
+            internalApiKey = internalApiKey
         )
     }
 }
