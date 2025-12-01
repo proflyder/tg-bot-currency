@@ -180,4 +180,42 @@ class CurrencyHistoryRepositoryImpl(
             }
         }
     }
+
+    override suspend fun getLatestRecord(): Result<CurrencyRateRecord?> = runCatching {
+        withContext(Dispatchers.IO) {
+            transaction(database) {
+                logger.info("Fetching latest currency rate record from H2 database")
+
+                val row = CurrencyHistoryTable
+                    .selectAll()
+                    .orderBy(CurrencyHistoryTable.timestamp, SortOrder.DESC)
+                    .limit(1)
+                    .firstOrNull()
+
+                val record = row?.let {
+                    CurrencyRateRecord(
+                        timestamp = it[CurrencyHistoryTable.timestamp],
+                        rates = CurrencyRateSnapshot(
+                            usdToKzt = ExchangeRateSnapshot(
+                                buy = it[CurrencyHistoryTable.usdBuy],
+                                sell = it[CurrencyHistoryTable.usdSell]
+                            ),
+                            rubToKzt = ExchangeRateSnapshot(
+                                buy = it[CurrencyHistoryTable.rubBuy],
+                                sell = it[CurrencyHistoryTable.rubSell]
+                            )
+                        )
+                    )
+                }
+
+                if (record != null) {
+                    logger.info("Latest currency rate record fetched: ${record.timestamp}")
+                } else {
+                    logger.info("No currency rate records found in database")
+                }
+
+                record
+            }
+        }
+    }
 }

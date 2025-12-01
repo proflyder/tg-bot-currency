@@ -35,4 +35,10 @@ interface CurrencyHistoryRepository {
      * @return Список всех записей, отсортированный по времени (от новых к старым)
      */
     suspend fun getAllRecords(): Result<List<CurrencyRateRecord>>
+
+    /**
+     * Получить последнюю (самую свежую) запись курсов
+     * @return Последняя запись или null если история пуста
+     */
+    suspend fun getLatestRecord(): Result<CurrencyRateRecord?>
 }

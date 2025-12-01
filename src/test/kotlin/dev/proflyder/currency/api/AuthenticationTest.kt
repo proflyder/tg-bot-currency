@@ -9,6 +9,7 @@ import dev.proflyder.currency.domain.model.CurrencyRateRecord
 import dev.proflyder.currency.domain.model.CurrencyRateSnapshot
 import dev.proflyder.currency.domain.model.ExchangeRateSnapshot
 import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
+import dev.proflyder.currency.domain.usecase.GetLatestCurrencyRateUseCase
 import dev.proflyder.currency.presentation.auth.configureAuthentication
 import dev.proflyder.currency.presentation.controller.CurrencyHistoryController
 import io.kotest.matchers.shouldBe
@@ -66,7 +67,7 @@ class AuthenticationTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase)
+            val mockController = CurrencyHistoryController(mockUseCase, mockk())
 
             // Setup application with mocks
             application {
@@ -106,7 +107,7 @@ class AuthenticationTest : KoinTest {
             // Arrange
             val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
             val mockUnkeyClient = mockk<UnkeyClient>()
-            val mockController = CurrencyHistoryController(mockUseCase)
+            val mockController = CurrencyHistoryController(mockUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -151,7 +152,7 @@ class AuthenticationTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase)
+            val mockController = CurrencyHistoryController(mockUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -187,7 +188,7 @@ class AuthenticationTest : KoinTest {
             // Arrange
             val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
             val mockUnkeyClient = mockk<UnkeyClient>()
-            val mockController = CurrencyHistoryController(mockUseCase)
+            val mockController = CurrencyHistoryController(mockUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -229,7 +230,7 @@ class AuthenticationTest : KoinTest {
                 Exception("Network error")
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase)
+            val mockController = CurrencyHistoryController(mockUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -265,7 +266,7 @@ class AuthenticationTest : KoinTest {
             // Arrange
             val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
             val mockUnkeyClient = mockk<UnkeyClient>()
-            val mockController = CurrencyHistoryController(mockUseCase)
+            val mockController = CurrencyHistoryController(mockUseCase, mockk())
 
             application {
                 install(Koin) {

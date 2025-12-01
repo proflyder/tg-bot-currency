@@ -3,6 +3,7 @@ package dev.proflyder.currency.api
 import dev.proflyder.currency.TestFixtures
 import dev.proflyder.currency.configureRouting
 import dev.proflyder.currency.data.dto.CurrencyHistoryResponseDto
+import dev.proflyder.currency.data.dto.LatestCurrencyRateResponseDto
 import dev.proflyder.currency.data.remote.unkey.UnkeyClient
 import dev.proflyder.currency.data.remote.unkey.UnkeyVerifyData
 import dev.proflyder.currency.data.remote.unkey.UnkeyVerifyResponse
@@ -10,6 +11,7 @@ import dev.proflyder.currency.domain.model.CurrencyRateRecord
 import dev.proflyder.currency.domain.model.CurrencyRateSnapshot
 import dev.proflyder.currency.domain.model.ExchangeRateSnapshot
 import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
+import dev.proflyder.currency.domain.usecase.GetLatestCurrencyRateUseCase
 import dev.proflyder.currency.presentation.auth.configureAuthentication
 import dev.proflyder.currency.presentation.controller.CurrencyHistoryController
 import io.kotest.matchers.shouldBe
@@ -72,7 +74,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase)
+            val mockController = CurrencyHistoryController(mockUseCase, mockk())
 
             // Setup application with mock
             application {
@@ -124,7 +126,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase)
+            val mockController = CurrencyHistoryController(mockUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -173,7 +175,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase)
+            val mockController = CurrencyHistoryController(mockUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -238,7 +240,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase)
+            val mockController = CurrencyHistoryController(mockUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -278,6 +280,282 @@ class CurrencyHistoryApiTest : KoinTest {
             record.rates.usdToKzt.sell shouldBe TestFixtures.sampleExchangeRateUsd.sell
             record.rates.rubToKzt.buy shouldBe TestFixtures.sampleExchangeRateRub.buy
             record.rates.rubToKzt.sell shouldBe TestFixtures.sampleExchangeRateRub.sell
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/latest")
+    inner class GetLatestEndpoint {
+
+        @Test
+        fun `должен вернуть 200 и последнюю запись курса`() = testApplication {
+            // Arrange
+            val latestRecord = CurrencyRateRecord(
+                timestamp = Instant.parse("2025-11-30T12:00:00Z"),
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(buy = 485.50, sell = 487.20),
+                    rubToKzt = ExchangeRateSnapshot(buy = 4.85, sell = 4.92)
+                )
+            )
+
+            val mockHistoryUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockLatestUseCase = mockk<GetLatestCurrencyRateUseCase>()
+            coEvery { mockLatestUseCase() } returns Result.success(latestRecord)
+
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
+                UnkeyVerifyResponse(
+                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
+                )
+            )
+
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase)
+
+            // Setup application with mock
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.get("/api/latest") {
+                header(HttpHeaders.Authorization, "Bearer test-api-key")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.OK
+            response.contentType()?.withoutParameters() shouldBe ContentType.Application.Json
+
+            val body = response.body<LatestCurrencyRateResponseDto>()
+            body.success shouldBe true
+            body.data shouldNotBe null
+            body.data!!.timestamp shouldBe Instant.parse("2025-11-30T12:00:00Z")
+            body.data!!.rates.usdToKzt.buy shouldBe 485.50
+            body.data!!.rates.usdToKzt.sell shouldBe 487.20
+            body.message shouldBe "Latest currency rate fetched successfully"
+        }
+
+        @Test
+        fun `должен вернуть 404 если база данных пустая`() = testApplication {
+            // Arrange
+            val mockHistoryUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockLatestUseCase = mockk<GetLatestCurrencyRateUseCase>()
+            coEvery { mockLatestUseCase() } returns Result.success(null)
+
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
+                UnkeyVerifyResponse(
+                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
+                )
+            )
+
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.get("/api/latest") {
+                header(HttpHeaders.Authorization, "Bearer test-api-key")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.NotFound
+
+            val body = response.body<LatestCurrencyRateResponseDto>()
+            body.success shouldBe false
+            body.data shouldBe null
+            body.message shouldBe "No currency rates found"
+        }
+
+        @Test
+        fun `должен вернуть 500 если use case вернул ошибку`() = testApplication {
+            // Arrange
+            val mockHistoryUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockLatestUseCase = mockk<GetLatestCurrencyRateUseCase>()
+            coEvery { mockLatestUseCase() } returns Result.failure(Exception("Database connection error"))
+
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
+                UnkeyVerifyResponse(
+                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
+                )
+            )
+
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.get("/api/latest") {
+                header(HttpHeaders.Authorization, "Bearer test-api-key")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.InternalServerError
+
+            val body = response.body<LatestCurrencyRateResponseDto>()
+            body.success shouldBe false
+            body.data shouldBe null
+            body.message shouldNotBe null
+            body.message!! shouldBe "Failed to fetch latest currency rate: Database connection error"
+        }
+
+        @Test
+        fun `должен вернуть корректный JSON формат`() = testApplication {
+            // Arrange
+            val latestRecord = CurrencyRateRecord(
+                timestamp = TestFixtures.sampleTimestamp,
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(
+                        buy = TestFixtures.sampleExchangeRateUsd.buy,
+                        sell = TestFixtures.sampleExchangeRateUsd.sell
+                    ),
+                    rubToKzt = ExchangeRateSnapshot(
+                        buy = TestFixtures.sampleExchangeRateRub.buy,
+                        sell = TestFixtures.sampleExchangeRateRub.sell
+                    )
+                )
+            )
+
+            val mockHistoryUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockLatestUseCase = mockk<GetLatestCurrencyRateUseCase>()
+            coEvery { mockLatestUseCase() } returns Result.success(latestRecord)
+
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
+                UnkeyVerifyResponse(
+                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
+                )
+            )
+
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.get("/api/latest") {
+                header(HttpHeaders.Authorization, "Bearer test-api-key")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = response.body<LatestCurrencyRateResponseDto>()
+            body.success shouldBe true
+            body.data shouldNotBe null
+
+            val record = body.data!!
+            record.timestamp shouldBe TestFixtures.sampleTimestamp
+            record.rates.usdToKzt.buy shouldBe TestFixtures.sampleExchangeRateUsd.buy
+            record.rates.usdToKzt.sell shouldBe TestFixtures.sampleExchangeRateUsd.sell
+            record.rates.rubToKzt.buy shouldBe TestFixtures.sampleExchangeRateRub.buy
+            record.rates.rubToKzt.sell shouldBe TestFixtures.sampleExchangeRateRub.sell
+        }
+
+        @Test
+        fun `должен требовать аутентификацию`() = testApplication {
+            // Arrange
+            val mockHistoryUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockLatestUseCase = mockk<GetLatestCurrencyRateUseCase>()
+
+            val mockUnkeyClient = mockk<UnkeyClient>()
+
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.get("/api/latest")
+
+            // Assert
+            response.status shouldBe HttpStatusCode.Unauthorized
         }
     }
 }

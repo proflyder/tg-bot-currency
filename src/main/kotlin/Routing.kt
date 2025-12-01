@@ -33,6 +33,10 @@ fun Application.configureRouting() {
             get("/api/history") {
                 currencyHistoryController.getHistory(call)
             }
+
+            get("/api/latest") {
+                currencyHistoryController.getLatest(call)
+            }
         }
     }
 }
