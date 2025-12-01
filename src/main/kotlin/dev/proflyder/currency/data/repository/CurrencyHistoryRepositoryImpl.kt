@@ -150,4 +150,34 @@ class CurrencyHistoryRepositoryImpl(
             }
         }
     }
+
+    override suspend fun getAllRecords(): Result<List<CurrencyRateRecord>> = runCatching {
+        withContext(Dispatchers.IO) {
+            transaction(database) {
+                logger.info("Fetching all currency history records from H2 database")
+
+                val records = CurrencyHistoryTable
+                    .selectAll()
+                    .orderBy(CurrencyHistoryTable.timestamp, SortOrder.DESC)
+                    .map { row ->
+                        CurrencyRateRecord(
+                            timestamp = row[CurrencyHistoryTable.timestamp],
+                            rates = CurrencyRateSnapshot(
+                                usdToKzt = ExchangeRateSnapshot(
+                                    buy = row[CurrencyHistoryTable.usdBuy],
+                                    sell = row[CurrencyHistoryTable.usdSell]
+                                ),
+                                rubToKzt = ExchangeRateSnapshot(
+                                    buy = row[CurrencyHistoryTable.rubBuy],
+                                    sell = row[CurrencyHistoryTable.rubSell]
+                                )
+                            )
+                        )
+                    }
+
+                logger.info("Fetched ${records.size} currency history records")
+                records
+            }
+        }
+    }
 }

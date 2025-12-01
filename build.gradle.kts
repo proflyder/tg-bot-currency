@@ -16,6 +16,7 @@ dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.config.yaml)
+    implementation(libs.ktor.server.content.negotiation)
 
     // Ktor Client
     implementation(libs.ktor.client.core)

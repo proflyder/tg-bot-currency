@@ -44,7 +44,11 @@
 ```
 src/main/kotlin/dev/proflyder/currency/
 ├── Application.kt              # Entry point, Koin setup
-├── Routing.kt                  # HTTP endpoints
+├── Routing.kt                  # HTTP routing definition
+│
+├── presentation/               # ✅ PRESENTATION LAYER
+│   └── controller/
+│       └── CurrencyHistoryController.kt  # HTTP request/response handling
 │
 ├── domain/                     # ✅ БИЗНЕС-ЛОГИКА (независимый слой)
 │   ├── model/
@@ -126,12 +130,14 @@ src/main/kotlin/dev/proflyder/currency/
 | **Quartz Manager** | `QuartzSchedulerManager.kt` | Управление Quartz Scheduler с cron |
 | **Quartz Job** | `CurrencyRatesJob.kt` | Выполнение задачи парсинга и отправки |
 | **Use Case** | `SendCurrencyRatesUseCase.kt` | Главная бизнес-логика: получить → сохранить → проверить пороги → отправить |
+| **History Use Case** | `GetCurrencyHistoryUseCase.kt` | Получение полной истории курсов из БД |
 | **Threshold Check** | `CheckCurrencyThresholdsUseCase.kt` | Проверка изменений курсов за 4 периода |
 | **Message Format** | `FormatCurrencyMessageUseCase.kt` | Форматирование сообщений с алертами |
 | **Parser** | `KursKzParser.kt` | HTML парсинг через Ksoup, извлечение курсов |
 | **Telegram Client** | `TelegramApi.kt` | Ktor Client для Telegram Bot API |
 | **H2 Repository** | `CurrencyHistoryRepositoryImpl.kt` | Работа с H2 через Exposed ORM |
 | **H2 Table** | `CurrencyHistoryTable.kt` | Схема таблицы currency_history |
+| **API Routing** | `Routing.kt` | HTTP endpoints (GET /api/history) |
 | **DI Module** | `AppModule.kt` | Все `single {}` определения |
 
 ---
@@ -212,6 +218,45 @@ CREATE TABLE currency_history (
 📉 🇷🇺 *RUB → KZT* упал на 2.50% за сутки
    490.00 → 478.25 ₸
 ```
+
+### 🌐 REST API для истории курсов
+
+**Новый HTTP endpoint** для получения истории курсов валют:
+
+**Преимущества:**
+- ✅ REST API доступ к данным
+- ✅ JSON формат ответа
+- ✅ Полная история курсов
+- ✅ Покрыто тестами (unit + integration)
+
+**Endpoint:** `GET /api/history`
+
+**Пример использования:**
+```bash
+curl http://localhost:8080/api/history
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "records": [
+      {
+        "timestamp": "2025-11-30T12:00:00Z",
+        "rates": {
+          "usdToKzt": { "buy": 485.50, "sell": 487.20 },
+          "rubToKzt": { "buy": 4.85, "sell": 4.92 }
+        }
+      }
+    ],
+    "totalCount": 1
+  },
+  "message": "Currency history fetched successfully"
+}
+```
+
+**Подробнее:** [Currency History API](api/currency-history-api.md)
 
 ---
 
@@ -812,8 +857,13 @@ git push origin main         # Push в main
 ---
 
 **Последнее обновление:** 2025-12-01
-**Версия:** 2.0.0
+**Версия:** 2.1.0
 **Изменения:**
+- Добавлен REST API endpoint GET /api/history для получения истории курсов
+- Добавлен GetCurrencyHistoryUseCase для работы с историей
+- Добавлены DTO модели для API ответов
+- Добавлены unit и integration тесты для нового функционала
+- Добавлена зависимость ktor-server-content-negotiation
 - Добавлен H2 Database вместо JSON
 - Добавлен Quartz Scheduler вместо простого delay
 - Добавлена система threshold alerts

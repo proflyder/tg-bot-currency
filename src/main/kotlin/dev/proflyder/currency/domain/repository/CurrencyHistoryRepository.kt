@@ -29,4 +29,10 @@ interface CurrencyHistoryRepository {
      * @return Запись о курсах или null если не найдено
      */
     suspend fun getRecordBefore(duration: Duration): Result<CurrencyRateRecord?>
+
+    /**
+     * Получить все записи истории курсов
+     * @return Список всех записей, отсортированный по времени (от новых к старым)
+     */
+    suspend fun getAllRecords(): Result<List<CurrencyRateRecord>>
 }

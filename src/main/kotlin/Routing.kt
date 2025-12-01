@@ -1,16 +1,35 @@
 package dev.proflyder.currency
 
-import dev.proflyder.currency.domain.repository.TelegramRepository
+import dev.proflyder.currency.presentation.controller.CurrencyHistoryController
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.Json
 import org.koin.ktor.ext.inject
-import kotlin.getValue
 
 fun Application.configureRouting() {
+    // Настройка Content Negotiation для JSON сериализации
+    install(ContentNegotiation) {
+        json(Json {
+            prettyPrint = true
+            isLenient = true
+            ignoreUnknownKeys = true
+        })
+    }
+
+    // Внедряем контроллеры через Koin
+    val currencyHistoryController by inject<CurrencyHistoryController>()
+
     routing {
         get("/") {
             call.respondText("Hello World!")
+        }
+
+        // Currency History API
+        get("/api/history") {
+            currencyHistoryController.getHistory(call)
         }
     }
 }

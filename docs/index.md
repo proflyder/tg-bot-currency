@@ -78,6 +78,7 @@
 
 | Документ | Описание | Теги |
 |----------|----------|------|
+| [Currency History API](api/currency-history-api.md) | REST API для получения истории курсов | `api`, `rest`, `history` |
 | [Telegram Bot API](api/telegram-api.md) | Интеграция с Telegram | `api`, `telegram` |
 | [Kurs.kz Parser](api/kurs-kz-parser.md) | Парсер курсов валют | `api`, `parser` |
 

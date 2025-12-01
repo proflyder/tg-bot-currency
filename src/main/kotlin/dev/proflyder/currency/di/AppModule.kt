@@ -10,7 +10,9 @@ import dev.proflyder.currency.domain.repository.CurrencyRepository
 import dev.proflyder.currency.domain.repository.TelegramRepository
 import dev.proflyder.currency.domain.usecase.CheckCurrencyThresholdsUseCase
 import dev.proflyder.currency.domain.usecase.FormatCurrencyMessageUseCase
+import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
 import dev.proflyder.currency.domain.usecase.SendCurrencyRatesUseCase
+import dev.proflyder.currency.presentation.controller.CurrencyHistoryController
 import dev.proflyder.currency.scheduler.QuartzSchedulerManager
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -52,6 +54,10 @@ val appModule = module {
     single { CheckCurrencyThresholdsUseCase(get()) }
     single { FormatCurrencyMessageUseCase() }
     single { SendCurrencyRatesUseCase(get(), get(), get(), get(), get()) }
+    single { GetCurrencyHistoryUseCase(get()) }
+
+    // Presentation Layer - Controllers
+    single { CurrencyHistoryController(get()) }
 
     // Scheduler
     single { QuartzSchedulerManager(get(), get()) }
