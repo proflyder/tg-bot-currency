@@ -4,5 +4,6 @@ data class AppConfig(
     val botToken: String,
     val chatId: String,
     val schedulerCron: String,
-    val databasePath: String
+    val databasePath: String,
+    val unkeyRootKey: String
 )

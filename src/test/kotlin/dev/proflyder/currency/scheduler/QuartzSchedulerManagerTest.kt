@@ -32,7 +32,8 @@ class QuartzSchedulerManagerTest {
             botToken = "test-token",
             chatId = "test-chat-id",
             schedulerCron = "0 0 * * * ?", // Каждый час
-            databasePath = "mem:test-db"
+            databasePath = "mem:test-db",
+            unkeyRootKey = "test-unkey-root-key"
         )
     }
 

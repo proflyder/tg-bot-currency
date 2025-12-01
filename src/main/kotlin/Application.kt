@@ -1,7 +1,9 @@
 package dev.proflyder.currency
 
+import dev.proflyder.currency.data.remote.unkey.UnkeyClient
 import dev.proflyder.currency.di.AppConfig
 import dev.proflyder.currency.di.appModule
+import dev.proflyder.currency.presentation.auth.configureAuthentication
 import dev.proflyder.currency.scheduler.QuartzSchedulerManager
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.client.*
@@ -28,7 +30,8 @@ fun Application.module() {
         botToken = environment.config.property("bot.token").getString(),
         chatId = environment.config.property("bot.chatId").getString(),
         schedulerCron = environment.config.property("scheduler.cron").getString(),
-        databasePath = environment.config.property("database.path").getString()
+        databasePath = environment.config.property("database.path").getString(),
+        unkeyRootKey = environment.config.property("unkey.rootKey").getString()
     )
 
     // Настраиваем Koin
@@ -45,6 +48,10 @@ fun Application.module() {
     // Получаем зависимости через Koin
     val scheduler = get<QuartzSchedulerManager>()
     val httpClient by inject<HttpClient>()
+    val unkeyClient = get<UnkeyClient>()
+
+    // Настраиваем authentication
+    configureAuthentication(unkeyClient)
 
     // Запускаем Quartz Scheduler
     scheduler.start()

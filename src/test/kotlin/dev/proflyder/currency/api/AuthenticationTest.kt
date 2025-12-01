@@ -1,6 +1,5 @@
 package dev.proflyder.currency.api
 
-import dev.proflyder.currency.TestFixtures
 import dev.proflyder.currency.configureRouting
 import dev.proflyder.currency.data.dto.CurrencyHistoryResponseDto
 import dev.proflyder.currency.data.remote.unkey.UnkeyClient
@@ -13,16 +12,12 @@ import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
 import dev.proflyder.currency.presentation.auth.configureAuthentication
 import dev.proflyder.currency.presentation.controller.CurrencyHistoryController
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
-import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -35,29 +30,23 @@ import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
 import org.koin.test.KoinTest
 
-@DisplayName("Currency History API Integration Tests")
-class CurrencyHistoryApiTest : KoinTest {
+@DisplayName("Authentication Integration Tests")
+class AuthenticationTest : KoinTest {
 
     @Nested
-    @DisplayName("GET /api/history")
-    inner class GetHistoryEndpoint {
+    @DisplayName("GET /api/history with authentication")
+    inner class HistoryEndpointAuth {
 
         @Test
-        fun `должен вернуть 200 и список записей истории`() = testApplication {
+        fun `должен вернуть 200 с валидным API ключом`() = testApplication {
             // Arrange
+            val validApiKey = "valid_api_key_123"
             val mockRecords = listOf(
                 CurrencyRateRecord(
                     timestamp = Instant.parse("2025-11-30T12:00:00Z"),
                     rates = CurrencyRateSnapshot(
                         usdToKzt = ExchangeRateSnapshot(buy = 485.50, sell = 487.20),
                         rubToKzt = ExchangeRateSnapshot(buy = 4.85, sell = 4.92)
-                    )
-                ),
-                CurrencyRateRecord(
-                    timestamp = Instant.parse("2025-11-30T11:00:00Z"),
-                    rates = CurrencyRateSnapshot(
-                        usdToKzt = ExchangeRateSnapshot(buy = 485.00, sell = 486.70),
-                        rubToKzt = ExchangeRateSnapshot(buy = 4.83, sell = 4.90)
                     )
                 )
             )
@@ -66,175 +55,99 @@ class CurrencyHistoryApiTest : KoinTest {
             coEvery { mockUseCase() } returns Result.success(mockRecords)
 
             val mockUnkeyClient = mockk<UnkeyClient>()
-            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
+            coEvery { mockUnkeyClient.verifyKey(validApiKey) } returns Result.success(
                 UnkeyVerifyResponse(
-                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
-                )
-            )
-
-            val mockController = CurrencyHistoryController(mockUseCase)
-
-            // Setup application with mock
-            application {
-                install(Koin) {
-                    modules(module {
-                        single { mockController }
-                    })
-                }
-                configureAuthentication(mockUnkeyClient)
-                configureRouting()
-            }
-
-            val client = createClient {
-                install(ContentNegotiation) {
-                    json(Json {
-                        prettyPrint = true
-                        isLenient = true
-                        ignoreUnknownKeys = true
-                    })
-                }
-            }
-
-            // Act
-            val response = client.get("/api/history") {
-                header(HttpHeaders.Authorization, "Bearer test-api-key")
-            }
-
-            // Assert
-            response.status shouldBe HttpStatusCode.OK
-            response.contentType()?.withoutParameters() shouldBe ContentType.Application.Json
-
-            val body = response.body<CurrencyHistoryResponseDto>()
-            body.success shouldBe true
-            body.data.records.size shouldBe 2
-            body.data.totalCount shouldBe 2
-            body.message shouldBe "Currency history fetched successfully"
-        }
-
-        @Test
-        fun `должен вернуть 200 и пустой список если история пуста`() = testApplication {
-            // Arrange
-            val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
-            coEvery { mockUseCase() } returns Result.success(emptyList())
-
-            val mockUnkeyClient = mockk<UnkeyClient>()
-            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
-                UnkeyVerifyResponse(
-                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
-                )
-            )
-
-            val mockController = CurrencyHistoryController(mockUseCase)
-
-            application {
-                install(Koin) {
-                    modules(module {
-                        single { mockController }
-                    })
-                }
-                configureAuthentication(mockUnkeyClient)
-                configureRouting()
-            }
-
-            val client = createClient {
-                install(ContentNegotiation) {
-                    json(Json {
-                        prettyPrint = true
-                        isLenient = true
-                        ignoreUnknownKeys = true
-                    })
-                }
-            }
-
-            // Act
-            val response = client.get("/api/history") {
-                header(HttpHeaders.Authorization, "Bearer test-api-key")
-            }
-
-            // Assert
-            response.status shouldBe HttpStatusCode.OK
-
-            val body = response.body<CurrencyHistoryResponseDto>()
-            body.success shouldBe true
-            body.data.records.size shouldBe 0
-            body.data.totalCount shouldBe 0
-        }
-
-        @Test
-        fun `должен вернуть 500 если use case вернул ошибку`() = testApplication {
-            // Arrange
-            val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
-            coEvery { mockUseCase() } returns Result.failure(Exception("Database error"))
-
-            val mockUnkeyClient = mockk<UnkeyClient>()
-            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
-                UnkeyVerifyResponse(
-                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
-                )
-            )
-
-            val mockController = CurrencyHistoryController(mockUseCase)
-
-            application {
-                install(Koin) {
-                    modules(module {
-                        single { mockController }
-                    })
-                }
-                configureAuthentication(mockUnkeyClient)
-                configureRouting()
-            }
-
-            val client = createClient {
-                install(ContentNegotiation) {
-                    json(Json {
-                        prettyPrint = true
-                        isLenient = true
-                        ignoreUnknownKeys = true
-                    })
-                }
-            }
-
-            // Act
-            val response = client.get("/api/history") {
-                header(HttpHeaders.Authorization, "Bearer test-api-key")
-            }
-
-            // Assert
-            response.status shouldBe HttpStatusCode.InternalServerError
-
-            val body = response.body<CurrencyHistoryResponseDto>()
-            body.success shouldBe false
-            body.data.records.size shouldBe 0
-            body.data.totalCount shouldBe 0
-            body.message shouldNotBe null
-            body.message!! shouldBe "Failed to fetch currency history: Database error"
-        }
-
-        @Test
-        fun `должен вернуть корректный JSON формат`() = testApplication {
-            // Arrange
-            val mockRecord = CurrencyRateRecord(
-                timestamp = TestFixtures.sampleTimestamp,
-                rates = CurrencyRateSnapshot(
-                    usdToKzt = ExchangeRateSnapshot(
-                        buy = TestFixtures.sampleExchangeRateUsd.buy,
-                        sell = TestFixtures.sampleExchangeRateUsd.sell
-                    ),
-                    rubToKzt = ExchangeRateSnapshot(
-                        buy = TestFixtures.sampleExchangeRateRub.buy,
-                        sell = TestFixtures.sampleExchangeRateRub.sell
+                    data = UnkeyVerifyData(
+                        valid = true,
+                        keyId = "key_123",
+                        name = "test-key",
+                        ownerId = "owner_123"
                     )
                 )
             )
 
-            val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
-            coEvery { mockUseCase() } returns Result.success(listOf(mockRecord))
+            val mockController = CurrencyHistoryController(mockUseCase)
 
+            // Setup application with mocks
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.get("/api/history") {
+                header(HttpHeaders.Authorization, "Bearer $validApiKey")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.OK
+            val body = response.body<CurrencyHistoryResponseDto>()
+            body.success shouldBe true
+            body.data.records.size shouldBe 1
+        }
+
+        @Test
+        fun `должен вернуть 401 без Authorization header`() = testApplication {
+            // Arrange
+            val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
             val mockUnkeyClient = mockk<UnkeyClient>()
-            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
+            val mockController = CurrencyHistoryController(mockUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.get("/api/history")
+
+            // Assert
+            response.status shouldBe HttpStatusCode.Unauthorized
+        }
+
+        @Test
+        fun `должен вернуть 401 с невалидным API ключом`() = testApplication {
+            // Arrange
+            val invalidApiKey = "invalid_api_key_456"
+
+            val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            coEvery { mockUnkeyClient.verifyKey(invalidApiKey) } returns Result.success(
                 UnkeyVerifyResponse(
-                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
+                    data = UnkeyVerifyData(
+                        valid = false,
+                        code = "NOT_FOUND"
+                    )
                 )
             )
 
@@ -262,22 +175,125 @@ class CurrencyHistoryApiTest : KoinTest {
 
             // Act
             val response = client.get("/api/history") {
-                header(HttpHeaders.Authorization, "Bearer test-api-key")
+                header(HttpHeaders.Authorization, "Bearer $invalidApiKey")
             }
 
             // Assert
-            response.status shouldBe HttpStatusCode.OK
+            response.status shouldBe HttpStatusCode.Unauthorized
+        }
 
-            val body = response.body<CurrencyHistoryResponseDto>()
-            body.success shouldBe true
-            body.data.records.size shouldBe 1
+        @Test
+        fun `должен вернуть 401 если Authorization header не содержит Bearer`() = testApplication {
+            // Arrange
+            val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            val mockController = CurrencyHistoryController(mockUseCase)
 
-            val record = body.data.records.first()
-            record.timestamp shouldBe TestFixtures.sampleTimestamp
-            record.rates.usdToKzt.buy shouldBe TestFixtures.sampleExchangeRateUsd.buy
-            record.rates.usdToKzt.sell shouldBe TestFixtures.sampleExchangeRateUsd.sell
-            record.rates.rubToKzt.buy shouldBe TestFixtures.sampleExchangeRateRub.buy
-            record.rates.rubToKzt.sell shouldBe TestFixtures.sampleExchangeRateRub.sell
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.get("/api/history") {
+                header(HttpHeaders.Authorization, "some_api_key_without_bearer")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.Unauthorized
+        }
+
+        @Test
+        fun `должен вернуть 401 если Unkey API недоступен`() = testApplication {
+            // Arrange
+            val apiKey = "some_api_key"
+
+            val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            coEvery { mockUnkeyClient.verifyKey(apiKey) } returns Result.failure(
+                Exception("Network error")
+            )
+
+            val mockController = CurrencyHistoryController(mockUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.get("/api/history") {
+                header(HttpHeaders.Authorization, "Bearer $apiKey")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.Unauthorized
+        }
+
+        @Test
+        fun `должен вернуть 401 с пустым API ключом после Bearer`() = testApplication {
+            // Arrange
+            val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            val mockController = CurrencyHistoryController(mockUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.get("/api/history") {
+                header(HttpHeaders.Authorization, "Bearer ")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.Unauthorized
         }
     }
 }

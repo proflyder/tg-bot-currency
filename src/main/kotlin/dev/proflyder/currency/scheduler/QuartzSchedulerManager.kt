@@ -3,7 +3,10 @@ package dev.proflyder.currency.scheduler
 import dev.proflyder.currency.di.AppConfig
 import dev.proflyder.currency.domain.usecase.SendCurrencyRatesUseCase
 import dev.proflyder.currency.util.logger
-import org.quartz.*
+import org.quartz.CronScheduleBuilder
+import org.quartz.JobBuilder
+import org.quartz.Scheduler
+import org.quartz.TriggerBuilder
 import org.quartz.impl.StdSchedulerFactory
 
 /**
@@ -45,7 +48,11 @@ class QuartzSchedulerManager(
         scheduler.start()
 
         logger.info("Quartz Scheduler started successfully")
-        logger.info("Next execution scheduled at: ${scheduler.getTriggersOfJob(jobDetail.key).firstOrNull()?.nextFireTime}")
+        logger.info(
+            "Next execution scheduled at: ${
+                scheduler.getTriggersOfJob(jobDetail.key).firstOrNull()?.nextFireTime
+            }"
+        )
     }
 
     fun stop() {

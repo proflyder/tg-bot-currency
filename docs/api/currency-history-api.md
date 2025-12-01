@@ -16,7 +16,45 @@ API предоставляет endpoint для получения полной �
 
 **Method:** `GET`
 
-**Authentication:** Не требуется
+**Authentication:** Требуется (Bearer Token)
+
+#### Request Headers
+
+| Header | Value | Description |
+|--------|-------|-------------|
+| `Authorization` | `Bearer <api_key>` | API ключ для аутентификации через Unkey |
+
+#### Example Request
+
+**cURL:**
+```bash
+curl -X GET "http://localhost:8080/api/history" \
+  -H "Authorization: Bearer your-api-key-here"
+```
+
+**JavaScript (fetch):**
+```javascript
+fetch('http://localhost:8080/api/history', {
+  headers: {
+    'Authorization': 'Bearer your-api-key-here'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+**Python (requests):**
+```python
+import requests
+
+headers = {
+    'Authorization': 'Bearer your-api-key-here'
+}
+
+response = requests.get('http://localhost:8080/api/history', headers=headers)
+data = response.json()
+print(data)
+```
 
 #### Response
 
@@ -57,6 +95,22 @@ API предоставляет endpoint для получения полной �
     "totalCount": 2
   },
   "message": "Currency history fetched successfully"
+}
+```
+
+**Error Response (401 Unauthorized):**
+
+```json
+{
+  "error": "Missing API key"
+}
+```
+
+или
+
+```json
+{
+  "error": "Invalid API key"
 }
 ```
 
@@ -101,7 +155,25 @@ API предоставляет endpoint для получения полной �
 | Code | Description |
 |------|-------------|
 | 200 | Успешный запрос, данные возвращены |
+| 401 | Отсутствует или недействителен API ключ |
 | 500 | Внутренняя ошибка сервера (проблема с БД) |
+
+## Authentication
+
+API использует систему управления API ключами [Unkey](https://unkey.com). Для доступа к endpoint необходимо предоставить валидный API ключ в заголовке `Authorization`.
+
+### Получение API ключа
+
+1. API ключи управляются через Unkey dashboard
+2. Администратор может создать новый API ключ с необходимыми правами доступа
+3. Ключ должен быть передан в заголовке запроса как Bearer token
+
+### Использование API ключа
+
+Все запросы должны включать заголовок:
+```
+Authorization: Bearer your-api-key-here
+```
 
 ## Примеры использования
 
@@ -109,16 +181,24 @@ API предоставляет endpoint для получения полной �
 
 ```bash
 # Получить всю историю
-curl -X GET http://localhost:8080/api/history
+curl -X GET "http://localhost:8080/api/history" \
+  -H "Authorization: Bearer your-api-key-here"
 
 # Красивый вывод с jq
-curl -X GET http://localhost:8080/api/history | jq '.'
+curl -X GET "http://localhost:8080/api/history" \
+  -H "Authorization: Bearer your-api-key-here" | jq '.'
 ```
 
 ### JavaScript (fetch)
 
 ```javascript
-fetch('http://localhost:8080/api/history')
+const apiKey = 'your-api-key-here';
+
+fetch('http://localhost:8080/api/history', {
+  headers: {
+    'Authorization': `Bearer ${apiKey}`
+  }
+})
   .then(response => response.json())
   .then(data => {
     if (data.success) {
@@ -138,7 +218,12 @@ fetch('http://localhost:8080/api/history')
 ```python
 import requests
 
-response = requests.get('http://localhost:8080/api/history')
+api_key = 'your-api-key-here'
+headers = {
+    'Authorization': f'Bearer {api_key}'
+}
+
+response = requests.get('http://localhost:8080/api/history', headers=headers)
 data = response.json()
 
 if data['success']:
@@ -154,13 +239,16 @@ else:
 ### Kotlin (Ktor Client)
 
 ```kotlin
+val apiKey = "your-api-key-here"
 val client = HttpClient(CIO) {
     install(ContentNegotiation) {
         json()
     }
 }
 
-val response: CurrencyHistoryResponseDto = client.get("http://localhost:8080/api/history").body()
+val response: CurrencyHistoryResponseDto = client.get("http://localhost:8080/api/history") {
+    header(HttpHeaders.Authorization, "Bearer $apiKey")
+}.body()
 
 if (response.success) {
     println("Total records: ${response.data.totalCount}")

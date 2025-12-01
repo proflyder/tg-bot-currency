@@ -33,7 +33,8 @@ class CurrencyRatesJobTest {
             botToken = "test-token",
             chatId = "test-chat-id",
             schedulerCron = "0 0 * * * ?",
-            databasePath = "mem:test-db"
+            databasePath = "mem:test-db",
+            unkeyRootKey = "test-unkey-root-key"
         )
 
         // Мокаем Quartz контекст
@@ -152,7 +153,8 @@ class CurrencyRatesJobTest {
                 botToken = "custom-token",
                 chatId = "custom-chat-123",
                 schedulerCron = "0 0 * * * ?",
-                databasePath = "mem:custom-db"
+                databasePath = "mem:custom-db",
+                unkeyRootKey = "test-unkey-root-key"
             )
             jobDataMap["config"] = customConfig
             coEvery { sendCurrencyRatesUseCase(any()) } returns Result.success(Unit)

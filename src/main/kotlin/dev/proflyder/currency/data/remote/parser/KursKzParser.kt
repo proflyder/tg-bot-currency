@@ -2,8 +2,8 @@ package dev.proflyder.currency.data.remote.parser
 
 import dev.proflyder.currency.domain.model.CurrencyRate
 import dev.proflyder.currency.domain.model.ExchangeRate
-import dev.proflyder.currency.util.logger
 import dev.proflyder.currency.util.logWithTiming
+import dev.proflyder.currency.util.logger
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*

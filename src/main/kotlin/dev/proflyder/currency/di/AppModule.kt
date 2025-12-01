@@ -2,6 +2,7 @@ package dev.proflyder.currency.di
 
 import dev.proflyder.currency.data.remote.parser.KursKzParser
 import dev.proflyder.currency.data.remote.telegram.TelegramApi
+import dev.proflyder.currency.data.remote.unkey.UnkeyClient
 import dev.proflyder.currency.data.repository.CurrencyHistoryRepositoryImpl
 import dev.proflyder.currency.data.repository.CurrencyRepositoryImpl
 import dev.proflyder.currency.data.repository.TelegramRepositoryImpl
@@ -42,6 +43,7 @@ val appModule = module {
     // Data Layer - Remote
     single { TelegramApi(get(), get<AppConfig>().botToken) }
     single { KursKzParser(get()) }
+    single { UnkeyClient(get(), get<AppConfig>().unkeyRootKey) }
 
     // Data Layer - Repositories
     single<CurrencyRepository> { CurrencyRepositoryImpl(get()) }
