@@ -4,6 +4,7 @@ import dev.proflyder.currency.data.remote.unkey.UnkeyClient
 import dev.proflyder.currency.di.AppConfig
 import dev.proflyder.currency.di.appModule
 import dev.proflyder.currency.presentation.auth.configureAuthentication
+import dev.proflyder.currency.presentation.swagger.configureSwagger
 import dev.proflyder.currency.scheduler.QuartzSchedulerManager
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.client.*
@@ -50,6 +51,9 @@ fun Application.module() {
     val scheduler = get<QuartzSchedulerManager>()
     val httpClient by inject<HttpClient>()
     val unkeyClient = get<UnkeyClient>()
+
+    // Настраиваем Swagger UI
+    configureSwagger()
 
     // Настраиваем authentication
     configureAuthentication(unkeyClient)
