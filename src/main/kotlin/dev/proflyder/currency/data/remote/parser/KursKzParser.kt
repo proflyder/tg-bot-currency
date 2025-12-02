@@ -105,14 +105,41 @@ class KursKzParser(
             throw Exception("No RUB rates found")
         }
 
-        // Вычисляем средние значения
-        val avgUsdBuy = usdRates.map { it.first }.average()
-        val avgUsdSell = usdRates.map { it.second }.average()
-        val avgRubBuy = rubRates.map { it.first }.average()
-        val avgRubSell = rubRates.map { it.second }.average()
+        // Вычисляем средние значения из топ-5 самых выгодных курсов
+        // Для покупки валюты (я покупаю USD за KZT):
+        //   - На сайте это "sell" (обменник продает мне валюту)
+        //   - Мне выгоден минимальный курс (меньше заплачу)
+        //   - Сортируем по возрастанию, берем топ-5
 
-        logger.info("Average USD rates: buy=%.2f, sell=%.2f".format(avgUsdBuy, avgUsdSell))
-        logger.info("Average RUB rates: buy=%.2f, sell=%.2f".format(avgRubBuy, avgRubSell))
+        // Для продажи валюты (я продаю USD за KZT):
+        //   - На сайте это "buy" (обменник покупает у меня валюту)
+        //   - Мне выгоден максимальный курс (больше получу)
+        //   - Сортируем по убыванию, берем топ-5
+
+        val topCount = 5
+
+        // USD: покупка (мне нужен минимальный sell)
+        val usdSellSorted = usdRates.map { it.second }.sorted()
+        val topUsdSell = usdSellSorted.take(topCount.coerceAtMost(usdSellSorted.size))
+        val avgUsdSell = topUsdSell.average()
+
+        // USD: продажа (мне нужен максимальный buy)
+        val usdBuySorted = usdRates.map { it.first }.sortedDescending()
+        val topUsdBuy = usdBuySorted.take(topCount.coerceAtMost(usdBuySorted.size))
+        val avgUsdBuy = topUsdBuy.average()
+
+        // RUB: покупка (мне нужен минимальный sell)
+        val rubSellSorted = rubRates.map { it.second }.sorted()
+        val topRubSell = rubSellSorted.take(topCount.coerceAtMost(rubSellSorted.size))
+        val avgRubSell = topRubSell.average()
+
+        // RUB: продажа (мне нужен максимальный buy)
+        val rubBuySorted = rubRates.map { it.first }.sortedDescending()
+        val topRubBuy = rubBuySorted.take(topCount.coerceAtMost(rubBuySorted.size))
+        val avgRubBuy = topRubBuy.average()
+
+        logger.info("Top-$topCount USD rates: buy=%.2f (from ${topUsdBuy.size}), sell=%.2f (from ${topUsdSell.size})".format(avgUsdBuy, avgUsdSell))
+        logger.info("Top-$topCount RUB rates: buy=%.2f (from ${topRubBuy.size}), sell=%.2f (from ${topRubSell.size})".format(avgRubBuy, avgRubSell))
 
         return CurrencyRate(
             usdToKzt = ExchangeRate(buy = avgUsdBuy, sell = avgUsdSell),

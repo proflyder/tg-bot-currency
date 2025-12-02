@@ -38,7 +38,7 @@ class CheckCurrencyThresholdsUseCase(
                         // Проверяем USD → KZT
                         checkPairThresholds(
                             pair = CurrencyPair.USD_TO_KZT,
-                            currentRate = currentRates.usdToKzt.sell, // Используем sell как базовый курс
+                            currentRate = currentRates.usdToKzt.sell, // Курс покупки валюты (топ-5 лучших)
                             historicalRate = historicalRecord.rates.usdToKzt.sell,
                             thresholdConfig = thresholdConfig
                         )?.let { alerts.add(it) }
@@ -46,7 +46,7 @@ class CheckCurrencyThresholdsUseCase(
                         // Проверяем RUB → KZT
                         checkPairThresholds(
                             pair = CurrencyPair.RUB_TO_KZT,
-                            currentRate = currentRates.rubToKzt.sell, // Используем sell как базовый курс
+                            currentRate = currentRates.rubToKzt.sell, // Курс покупки валюты (топ-5 лучших)
                             historicalRate = historicalRecord.rates.rubToKzt.sell,
                             thresholdConfig = thresholdConfig
                         )?.let { alerts.add(it) }

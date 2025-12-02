@@ -23,12 +23,12 @@ class FormatCurrencyMessageUseCase {
             appendLine("💱 *Курсы валют на kurs.kz*")
             appendLine()
             appendLine("🇺🇸 *USD → KZT*")
-            appendLine("  Покупка: ${"%.2f".format(rates.usdToKzt.buy)} ₸")
-            appendLine("  Продажа: ${"%.2f".format(rates.usdToKzt.sell)} ₸")
+            appendLine("  Покупка: ${"%.2f".format(rates.usdToKzt.sell)} ₸")  // я покупаю USD (обменник продает)
+            appendLine("  Продажа: ${"%.2f".format(rates.usdToKzt.buy)} ₸")   // я продаю USD (обменник покупает)
             appendLine()
             appendLine("🇷🇺 *RUB → KZT*")
-            appendLine("  Покупка: ${"%.2f".format(rates.rubToKzt.buy)} ₸")
-            appendLine("  Продажа: ${"%.2f".format(rates.rubToKzt.sell)} ₸")
+            appendLine("  Покупка: ${"%.2f".format(rates.rubToKzt.sell)} ₸")  // я покупаю RUB (обменник продает)
+            appendLine("  Продажа: ${"%.2f".format(rates.rubToKzt.buy)} ₸")   // я продаю RUB (обменник покупает)
 
             // Если есть алерты - добавляем их
             if (alerts.isNotEmpty()) {
