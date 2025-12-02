@@ -336,4 +336,162 @@ class CurrencyHistoryRepositoryImplTest {
             record.rates.rubToKzt.sell shouldBe 4.90
         }
     }
+
+    @Nested
+    @DisplayName("Удаление всех записей")
+    inner class DeleteAll {
+
+        @Test
+        fun `должен удалить все записи из базы данных`() = runTest {
+            // Arrange - создаем несколько записей
+            val now = Clock.System.now()
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 1.hours)
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 2.hours)
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 3.hours)
+
+            // Act
+            val result = repository.deleteAll()
+
+            // Assert
+            result.isSuccess shouldBe true
+            result.getOrNull() shouldBe 3 // Удалено 3 записи
+
+            // Проверяем, что база действительно пустая
+            val allRecords = repository.getAllRecords().getOrThrow()
+            allRecords.size shouldBe 0
+        }
+
+        @Test
+        fun `должен вернуть 0 если база данных уже пустая`() = runTest {
+            // Act - удаляем из пустой базы
+            val result = repository.deleteAll()
+
+            // Assert
+            result.isSuccess shouldBe true
+            result.getOrNull() shouldBe 0
+        }
+
+        @Test
+        fun `должен удалить одну запись если она одна`() = runTest {
+            // Arrange
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, Clock.System.now())
+
+            // Act
+            val result = repository.deleteAll()
+
+            // Assert
+            result.isSuccess shouldBe true
+            result.getOrNull() shouldBe 1
+
+            // Проверяем, что база пустая
+            val allRecords = repository.getAllRecords().getOrThrow()
+            allRecords.size shouldBe 0
+        }
+
+        @Test
+        fun `должен удалить большое количество записей`() = runTest {
+            // Arrange - создаем 100 записей
+            val now = Clock.System.now()
+            repeat(100) { i ->
+                repository.saveRecord(TestFixtures.sampleCurrencyRate, now - (i * 10).minutes)
+            }
+
+            // Act
+            val result = repository.deleteAll()
+
+            // Assert
+            result.isSuccess shouldBe true
+            result.getOrNull() shouldBe 100
+
+            // Проверяем, что все удалены
+            val allRecords = repository.getAllRecords().getOrThrow()
+            allRecords.size shouldBe 0
+        }
+
+        @Test
+        fun `должен корректно работать при повторном вызове`() = runTest {
+            // Arrange
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, Clock.System.now())
+
+            // Act - первый вызов
+            val result1 = repository.deleteAll()
+
+            // Assert первый вызов
+            result1.isSuccess shouldBe true
+            result1.getOrNull() shouldBe 1
+
+            // Act - второй вызов на пустой базе
+            val result2 = repository.deleteAll()
+
+            // Assert второй вызов
+            result2.isSuccess shouldBe true
+            result2.getOrNull() shouldBe 0
+        }
+
+        @Test
+        fun `должен удалить все записи независимо от возраста`() = runTest {
+            // Arrange - создаем записи разного возраста
+            val now = Clock.System.now()
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 100.days) // Очень старая
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 50.days)
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 1.days)
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now) // Свежая
+
+            // Act
+            val result = repository.deleteAll()
+
+            // Assert - все 4 записи удалены
+            result.isSuccess shouldBe true
+            result.getOrNull() shouldBe 4
+
+            val allRecords = repository.getAllRecords().getOrThrow()
+            allRecords.size shouldBe 0
+        }
+
+        @Test
+        fun `после удаления можно снова добавлять записи`() = runTest {
+            // Arrange
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, Clock.System.now())
+            repository.deleteAll()
+
+            // Act - добавляем новую запись после очистки
+            val newTimestamp = Clock.System.now()
+            val saveResult = repository.saveRecord(TestFixtures.sampleCurrencyRate, newTimestamp)
+
+            // Assert
+            saveResult.isSuccess shouldBe true
+
+            val allRecords = repository.getAllRecords().getOrThrow()
+            allRecords.size shouldBe 1
+            allRecords.first().timestamp shouldBe newTimestamp
+        }
+
+        @Test
+        fun `должен корректно возвращать количество удаленных записей через прямую проверку БД`() = runTest {
+            // Arrange
+            val now = Clock.System.now()
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 1.hours)
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 2.hours)
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 3.hours)
+
+            // Проверяем количество записей до удаления через прямой SQL
+            val countBefore = transaction(repository.database) {
+                CurrencyHistoryTable.selectAll().count()
+            }
+            countBefore shouldBe 3
+
+            // Act
+            val result = repository.deleteAll()
+
+            // Assert
+            result.isSuccess shouldBe true
+            result.getOrNull() shouldBe 3
+
+            // Проверяем количество записей после удаления через прямой SQL
+            val countAfter = transaction(repository.database) {
+                CurrencyHistoryTable.selectAll().count()
+            }
+            countAfter shouldBe 0
+        }
+    }
 }

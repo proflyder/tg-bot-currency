@@ -3,6 +3,7 @@ package dev.proflyder.currency.api
 import dev.proflyder.currency.TestFixtures
 import dev.proflyder.currency.configureRouting
 import dev.proflyder.currency.data.dto.CurrencyHistoryResponseDto
+import dev.proflyder.currency.data.dto.DeleteHistoryResponseDto
 import dev.proflyder.currency.data.dto.LatestCurrencyRateResponseDto
 import dev.proflyder.currency.data.remote.unkey.UnkeyClient
 import dev.proflyder.currency.data.remote.unkey.UnkeyVerifyData
@@ -10,6 +11,7 @@ import dev.proflyder.currency.data.remote.unkey.UnkeyVerifyResponse
 import dev.proflyder.currency.domain.model.CurrencyRateRecord
 import dev.proflyder.currency.domain.model.CurrencyRateSnapshot
 import dev.proflyder.currency.domain.model.ExchangeRateSnapshot
+import dev.proflyder.currency.domain.usecase.DeleteCurrencyHistoryUseCase
 import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
 import dev.proflyder.currency.domain.usecase.GetLatestCurrencyRateUseCase
 import dev.proflyder.currency.presentation.auth.configureAuthentication
@@ -74,7 +76,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase, mockk())
+            val mockController = CurrencyHistoryController(mockUseCase, mockk(), mockk())
 
             // Setup application with mock
             application {
@@ -126,7 +128,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase, mockk())
+            val mockController = CurrencyHistoryController(mockUseCase, mockk(), mockk())
 
             application {
                 install(Koin) {
@@ -175,7 +177,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase, mockk())
+            val mockController = CurrencyHistoryController(mockUseCase, mockk(), mockk())
 
             application {
                 install(Koin) {
@@ -240,7 +242,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase, mockk())
+            val mockController = CurrencyHistoryController(mockUseCase, mockk(), mockk())
 
             application {
                 install(Koin) {
@@ -309,7 +311,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase)
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase, mockk())
 
             // Setup application with mock
             application {
@@ -364,7 +366,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase)
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -414,7 +416,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase)
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -479,7 +481,7 @@ class CurrencyHistoryApiTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase)
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -529,7 +531,7 @@ class CurrencyHistoryApiTest : KoinTest {
 
             val mockUnkeyClient = mockk<UnkeyClient>()
 
-            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase)
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase, mockk())
 
             application {
                 install(Koin) {
@@ -556,6 +558,257 @@ class CurrencyHistoryApiTest : KoinTest {
 
             // Assert
             response.status shouldBe HttpStatusCode.Unauthorized
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /api/history")
+    inner class DeleteHistoryEndpoint {
+
+        @Test
+        fun `должен вернуть 200 и количество удаленных записей`() = testApplication {
+            // Arrange
+            val deletedCount = 50
+            val mockHistoryUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockLatestUseCase = mockk<GetLatestCurrencyRateUseCase>()
+            val mockDeleteUseCase = mockk<DeleteCurrencyHistoryUseCase>()
+            coEvery { mockDeleteUseCase() } returns Result.success(deletedCount)
+
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
+                UnkeyVerifyResponse(
+                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
+                )
+            )
+
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase, mockDeleteUseCase)
+
+            // Setup application with mock
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.delete("/api/history") {
+                header(HttpHeaders.Authorization, "Bearer test-api-key")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.OK
+            response.contentType()?.withoutParameters() shouldBe ContentType.Application.Json
+
+            val body = response.body<DeleteHistoryResponseDto>()
+            body.success shouldBe true
+            body.deletedCount shouldBe deletedCount
+            body.message shouldBe "Successfully deleted 50 currency history records"
+        }
+
+        @Test
+        fun `должен вернуть 200 с 0 удаленных записей если база была пустая`() = testApplication {
+            // Arrange
+            val mockHistoryUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockLatestUseCase = mockk<GetLatestCurrencyRateUseCase>()
+            val mockDeleteUseCase = mockk<DeleteCurrencyHistoryUseCase>()
+            coEvery { mockDeleteUseCase() } returns Result.success(0)
+
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
+                UnkeyVerifyResponse(
+                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
+                )
+            )
+
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase, mockDeleteUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.delete("/api/history") {
+                header(HttpHeaders.Authorization, "Bearer test-api-key")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = response.body<DeleteHistoryResponseDto>()
+            body.success shouldBe true
+            body.deletedCount shouldBe 0
+            body.message shouldBe "Successfully deleted 0 currency history records"
+        }
+
+        @Test
+        fun `должен вернуть 500 если use case вернул ошибку`() = testApplication {
+            // Arrange
+            val mockHistoryUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockLatestUseCase = mockk<GetLatestCurrencyRateUseCase>()
+            val mockDeleteUseCase = mockk<DeleteCurrencyHistoryUseCase>()
+            coEvery { mockDeleteUseCase() } returns Result.failure(Exception("Database error"))
+
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
+                UnkeyVerifyResponse(
+                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
+                )
+            )
+
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase, mockDeleteUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.delete("/api/history") {
+                header(HttpHeaders.Authorization, "Bearer test-api-key")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.InternalServerError
+
+            val body = response.body<DeleteHistoryResponseDto>()
+            body.success shouldBe false
+            body.message shouldNotBe null
+            body.message shouldBe "Failed to delete currency history: Database error"
+        }
+
+        @Test
+        fun `должен требовать аутентификацию`() = testApplication {
+            // Arrange
+            val mockHistoryUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockLatestUseCase = mockk<GetLatestCurrencyRateUseCase>()
+            val mockDeleteUseCase = mockk<DeleteCurrencyHistoryUseCase>()
+
+            val mockUnkeyClient = mockk<UnkeyClient>()
+
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase, mockDeleteUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.delete("/api/history")
+
+            // Assert
+            response.status shouldBe HttpStatusCode.Unauthorized
+        }
+
+        @Test
+        fun `должен вернуть корректный JSON формат`() = testApplication {
+            // Arrange
+            val deletedCount = 100
+            val mockHistoryUseCase = mockk<GetCurrencyHistoryUseCase>()
+            val mockLatestUseCase = mockk<GetLatestCurrencyRateUseCase>()
+            val mockDeleteUseCase = mockk<DeleteCurrencyHistoryUseCase>()
+            coEvery { mockDeleteUseCase() } returns Result.success(deletedCount)
+
+            val mockUnkeyClient = mockk<UnkeyClient>()
+            coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
+                UnkeyVerifyResponse(
+                    data = UnkeyVerifyData(valid = true, keyId = "test", name = "test", ownerId = "test")
+                )
+            )
+
+            val mockController = CurrencyHistoryController(mockHistoryUseCase, mockLatestUseCase, mockDeleteUseCase)
+
+            application {
+                install(Koin) {
+                    modules(module {
+                        single { mockController }
+                    })
+                }
+                configureAuthentication(mockUnkeyClient)
+                configureRouting()
+            }
+
+            val client = createClient {
+                install(ContentNegotiation) {
+                    json(Json {
+                        prettyPrint = true
+                        isLenient = true
+                        ignoreUnknownKeys = true
+                    })
+                }
+            }
+
+            // Act
+            val response = client.delete("/api/history") {
+                header(HttpHeaders.Authorization, "Bearer test-api-key")
+            }
+
+            // Assert
+            response.status shouldBe HttpStatusCode.OK
+
+            val body = response.body<DeleteHistoryResponseDto>()
+            body.success shouldBe true
+            body.deletedCount shouldBe deletedCount
+            body.message shouldBe "Successfully deleted 100 currency history records"
         }
     }
 }

@@ -12,6 +12,7 @@ import dev.proflyder.currency.domain.repository.CurrencyRepository
 import dev.proflyder.currency.domain.repository.TelegramRepository
 import dev.proflyder.currency.domain.telegram.TelegramCommandHandler
 import dev.proflyder.currency.domain.usecase.CheckCurrencyThresholdsUseCase
+import dev.proflyder.currency.domain.usecase.DeleteCurrencyHistoryUseCase
 import dev.proflyder.currency.domain.usecase.FormatCurrencyMessageUseCase
 import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
 import dev.proflyder.currency.domain.usecase.GetLatestCurrencyRateUseCase
@@ -64,9 +65,10 @@ val appModule = module {
     single { SendCurrencyRatesUseCase(get(), get(), get(), get(), get()) }
     single { GetCurrencyHistoryUseCase(get()) }
     single { GetLatestCurrencyRateUseCase(get()) }
+    single { DeleteCurrencyHistoryUseCase(get()) }
 
     // Presentation Layer - Controllers
-    single { CurrencyHistoryController(get(), get()) }
+    single { CurrencyHistoryController(get(), get(), get()) }
     single { TriggerController(get(), get()) }
     single { TelegramWebhookController(get()) }
 

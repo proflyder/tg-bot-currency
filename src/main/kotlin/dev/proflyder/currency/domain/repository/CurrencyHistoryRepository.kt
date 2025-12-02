@@ -41,4 +41,10 @@ interface CurrencyHistoryRepository {
      * @return Последняя запись или null если история пуста
      */
     suspend fun getLatestRecord(): Result<CurrencyRateRecord?>
+
+    /**
+     * Удалить все записи истории курсов валют
+     * @return Количество удаленных записей
+     */
+    suspend fun deleteAll(): Result<Int>
 }

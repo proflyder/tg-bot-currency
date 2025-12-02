@@ -28,7 +28,7 @@ class CurrencyHistoryRepositoryImpl(
 
     private val logger = logger()
 
-    private val database: Database
+    internal val database: Database
 
 
     init {
@@ -215,6 +215,19 @@ class CurrencyHistoryRepositoryImpl(
                 }
 
                 record
+            }
+        }
+    }
+
+    override suspend fun deleteAll(): Result<Int> = runCatching {
+        withContext(Dispatchers.IO) {
+            transaction(database) {
+                logger.info("Deleting all currency history records from H2 database")
+
+                val deletedCount = CurrencyHistoryTable.deleteAll()
+
+                logger.info("Deleted $deletedCount currency history records")
+                deletedCount
             }
         }
     }

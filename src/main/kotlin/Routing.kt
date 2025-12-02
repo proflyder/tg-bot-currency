@@ -1,11 +1,13 @@
 package dev.proflyder.currency
 
 import dev.proflyder.currency.data.dto.CurrencyHistoryResponseDto
+import dev.proflyder.currency.data.dto.DeleteHistoryResponseDto
 import dev.proflyder.currency.data.dto.LatestCurrencyRateResponseDto
 import dev.proflyder.currency.data.dto.TriggerResponseDto
 import dev.proflyder.currency.presentation.controller.CurrencyHistoryController
 import dev.proflyder.currency.presentation.controller.TelegramWebhookController
 import dev.proflyder.currency.presentation.controller.TriggerController
+import io.github.smiley4.ktorswaggerui.dsl.routing.delete
 import io.github.smiley4.ktorswaggerui.dsl.routing.get
 import io.github.smiley4.ktorswaggerui.dsl.routing.post
 import io.github.smiley4.ktorswaggerui.routing.openApiSpec
@@ -176,6 +178,42 @@ fun Application.configureRouting() {
                 }
             }) {
                 currencyHistoryController.getLatest(call)
+            }
+
+            delete("/api/history", {
+                tags = listOf("Currency History")
+                description = "Удаляет все записи истории курсов валют из базы данных"
+                securitySchemeNames = listOf("UnkeyAuth")
+                response {
+                    HttpStatusCode.OK to {
+                        description = "Успешно удалена вся история курсов"
+                        body<DeleteHistoryResponseDto> {
+                            example("Успешное удаление") {
+                                value = DeleteHistoryResponseDto(
+                                    success = true,
+                                    message = "Successfully deleted 50 currency history records",
+                                    deletedCount = 50
+                                )
+                            }
+                        }
+                    }
+                    HttpStatusCode.Unauthorized to {
+                        description = "Отсутствует или невалидный API ключ"
+                    }
+                    HttpStatusCode.InternalServerError to {
+                        description = "Ошибка при удалении истории"
+                        body<DeleteHistoryResponseDto> {
+                            example("Ошибка при удалении") {
+                                value = DeleteHistoryResponseDto(
+                                    success = false,
+                                    message = "Failed to delete currency history: Database error"
+                                )
+                            }
+                        }
+                    }
+                }
+            }) {
+                currencyHistoryController.deleteHistory(call)
             }
 
             // Manual trigger for currency update

@@ -67,7 +67,7 @@ class AuthenticationTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase, mockk())
+            val mockController = CurrencyHistoryController(mockUseCase, mockk(), mockk())
 
             // Setup application with mocks
             application {
@@ -107,7 +107,7 @@ class AuthenticationTest : KoinTest {
             // Arrange
             val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
             val mockUnkeyClient = mockk<UnkeyClient>()
-            val mockController = CurrencyHistoryController(mockUseCase, mockk())
+            val mockController = CurrencyHistoryController(mockUseCase, mockk(), mockk())
 
             application {
                 install(Koin) {
@@ -152,7 +152,7 @@ class AuthenticationTest : KoinTest {
                 )
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase, mockk())
+            val mockController = CurrencyHistoryController(mockUseCase, mockk(), mockk())
 
             application {
                 install(Koin) {
@@ -188,7 +188,7 @@ class AuthenticationTest : KoinTest {
             // Arrange
             val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
             val mockUnkeyClient = mockk<UnkeyClient>()
-            val mockController = CurrencyHistoryController(mockUseCase, mockk())
+            val mockController = CurrencyHistoryController(mockUseCase, mockk(), mockk())
 
             application {
                 install(Koin) {
@@ -230,7 +230,7 @@ class AuthenticationTest : KoinTest {
                 Exception("Network error")
             )
 
-            val mockController = CurrencyHistoryController(mockUseCase, mockk())
+            val mockController = CurrencyHistoryController(mockUseCase, mockk(), mockk())
 
             application {
                 install(Koin) {
@@ -266,7 +266,7 @@ class AuthenticationTest : KoinTest {
             // Arrange
             val mockUseCase = mockk<GetCurrencyHistoryUseCase>()
             val mockUnkeyClient = mockk<UnkeyClient>()
-            val mockController = CurrencyHistoryController(mockUseCase, mockk())
+            val mockController = CurrencyHistoryController(mockUseCase, mockk(), mockk())
 
             application {
                 install(Koin) {

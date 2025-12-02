@@ -2,8 +2,10 @@ package dev.proflyder.currency.presentation.controller
 
 import dev.proflyder.currency.data.dto.CurrencyHistoryDataDto
 import dev.proflyder.currency.data.dto.CurrencyHistoryResponseDto
+import dev.proflyder.currency.data.dto.DeleteHistoryResponseDto
 import dev.proflyder.currency.data.dto.LatestCurrencyRateResponseDto
 import dev.proflyder.currency.data.dto.toDto
+import dev.proflyder.currency.domain.usecase.DeleteCurrencyHistoryUseCase
 import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
 import dev.proflyder.currency.domain.usecase.GetLatestCurrencyRateUseCase
 import dev.proflyder.currency.util.logger
@@ -18,7 +20,8 @@ import java.util.*
  */
 class CurrencyHistoryController(
     private val getCurrencyHistoryUseCase: GetCurrencyHistoryUseCase,
-    private val getLatestCurrencyRateUseCase: GetLatestCurrencyRateUseCase
+    private val getLatestCurrencyRateUseCase: GetLatestCurrencyRateUseCase,
+    private val deleteCurrencyHistoryUseCase: DeleteCurrencyHistoryUseCase
 ) {
     private val logger = logger()
 
@@ -101,6 +104,39 @@ class CurrencyHistoryController(
                             success = false,
                             data = null,
                             message = "Failed to fetch latest currency rate: ${error.message}"
+                        )
+                    )
+                }
+            )
+        }
+    }
+
+    /**
+     * Обработать DELETE запрос для удаления всей истории курсов валют
+     */
+    suspend fun deleteHistory(call: RoutingCall) {
+        withLoggingContext(mapOf("request_id" to UUID.randomUUID().toString())) {
+            logger.info("DELETE /api/history - Deleting all currency history")
+
+            deleteCurrencyHistoryUseCase().fold(
+                onSuccess = { deletedCount ->
+                    logger.info("Successfully deleted $deletedCount records")
+                    call.respond(
+                        HttpStatusCode.OK,
+                        DeleteHistoryResponseDto(
+                            success = true,
+                            message = "Successfully deleted $deletedCount currency history records",
+                            deletedCount = deletedCount
+                        )
+                    )
+                },
+                onFailure = { error ->
+                    logger.error("Failed to delete currency history", error)
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        DeleteHistoryResponseDto(
+                            success = false,
+                            message = "Failed to delete currency history: ${error.message}"
                         )
                     )
                 }
