@@ -1,9 +1,9 @@
 package dev.proflyder.currency.domain.telegram
 
+import dev.proflyder.currency.data.dto.telegram.SendMessageRequest
 import dev.proflyder.currency.data.dto.telegram.TelegramMessage
 import dev.proflyder.currency.data.remote.api.TriggerApiClient
 import dev.proflyder.currency.data.remote.telegram.TelegramApi
-import dev.proflyder.currency.data.dto.telegram.SendMessageRequest
 import dev.proflyder.currency.util.logger
 
 /**
@@ -40,14 +40,14 @@ class TelegramCommandHandler(
     private suspend fun handleTriggerUpdateCommand(chatId: String, command: String) {
         logger.info("Handling $command command for chat $chatId")
 
-        // Вызываем API для обновления курсов
-        triggerApiClient.triggerCurrencyUpdate().fold(
+        // Вызываем внутренний API endpoint для обновления курсов, передавая chatId
+        triggerApiClient.triggerCurrencyUpdate(chatId = chatId).fold(
             onSuccess = { response ->
                 logger.info("Successfully triggered currency update via $command command: ${response.message}")
             },
             onFailure = { error ->
                 logger.error("Failed to trigger currency update via $command command", error)
-                // Отправляем сообщение только в случае ошибки
+                // Отправляем сообщение об ошибке в тот же чат
                 telegramApi.sendMessage(
                     SendMessageRequest(
                         chatId = chatId,

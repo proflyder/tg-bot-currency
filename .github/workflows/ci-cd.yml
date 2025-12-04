@@ -159,7 +159,7 @@ jobs:
       - name: Setup Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # SSH в VM и деплой через gcloud compute ssh
+      # SSH в VM и деплой через docker compose
       - name: Deploy to VM
         env:
           VM_NAME: ${{ secrets.GCC_VM_NAME }}
@@ -168,55 +168,82 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           UNKEY_ROOT_KEY: ${{ secrets.UNKEY_ROOT_KEY }}
           UNKEY_INTERNAL_KEY: ${{ secrets.UNKEY_INTERNAL_KEY }}
+          DOCKER_IMAGE: ghcr.io/${{ github.repository }}:latest
         run: |
           # Проверка обязательных секретов
           if [ -z "$VM_NAME" ]; then
             echo "❌ ERROR: GCC_VM_NAME secret is not set!"
-            echo "Please add GCC_VM_NAME to GitHub Secrets"
             exit 1
           fi
 
           if [ -z "$VM_ZONE" ]; then
             echo "❌ ERROR: GCC_VM_ZONE secret is not set!"
-            echo "Please add GCC_VM_ZONE to GitHub Secrets"
             exit 1
           fi
 
           echo "🚀 Deploying to VM: $VM_NAME in zone $VM_ZONE"
 
-          # Выполняем команды на VM через gcloud compute ssh
+          # Создаём временную директорию для файлов
+          TEMP_DIR=$(mktemp -d)
+
+          # Копируем необходимые файлы
+          cp docker-compose.yml "$TEMP_DIR/"
+          cp -r config "$TEMP_DIR/"
+
+          # Создаём .env файл с секретами
+          cat > "$TEMP_DIR/.env" <<EOF
+          BOT_TOKEN=${BOT_TOKEN}
+          CHAT_ID=${CHAT_ID}
+          SCHEDULER_CRON=0 0 * * * ?
+          UNKEY_ROOT_KEY=${UNKEY_ROOT_KEY}
+          UNKEY_INTERNAL_KEY=${UNKEY_INTERNAL_KEY}
+          DOCKER_IMAGE=${DOCKER_IMAGE}
+          EOF
+
+          # Создаём tar архив
+          tar -czf currency-bot-deploy.tar.gz -C "$TEMP_DIR" .
+
+          # Копируем архив на VM
+          echo "📦 Uploading files to VM..."
+          gcloud compute scp currency-bot-deploy.tar.gz "$VM_NAME:/tmp/" \
+            --zone="$VM_ZONE"
+
+          # Выполняем команды на VM
+          echo "🔧 Deploying currency bot..."
           gcloud compute ssh "$VM_NAME" \
             --zone="$VM_ZONE" \
             --command="
               set -e
+
+              echo '📂 Creating deployment directory...'
+              sudo mkdir -p /app/currency-bot
+
+              echo '📦 Extracting files...'
+              sudo tar -xzf /tmp/currency-bot-deploy.tar.gz -C /app/currency-bot/
+              sudo rm /tmp/currency-bot-deploy.tar.gz
+
+              echo '🔒 Setting permissions...'
+              sudo chown -R root:root /app/currency-bot
+              sudo chmod 600 /app/currency-bot/.env
+
               echo '📦 Logging in to GitHub Container Registry...'
               echo '${{ secrets.GITHUB_TOKEN }}' | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
               echo '⬇️  Pulling latest Docker image...'
-              sudo docker pull ghcr.io/${{ github.repository }}:latest
+              sudo docker pull ${DOCKER_IMAGE}
 
-              echo '🛑 Stopping old container...'
-              sudo docker stop currency-bot || true
-              sudo docker rm currency-bot || true
+              echo '🔄 Restarting services...'
+              sudo sh -c 'cd /app/currency-bot && docker compose down' || true
+              sudo sh -c 'cd /app/currency-bot && docker compose up -d'
 
-              echo '🚀 Starting new container...'
-              sudo docker run -d \
-                --name currency-bot \
-                --restart unless-stopped \
-                -p 8080:8080 \
-                -v /var/log/currency-bot:/app/logs \
-                -v /var/data/currency-bot:/app/data \
-                -e BOT_TOKEN=$BOT_TOKEN \
-                -e CHAT_ID=$CHAT_ID \
-                -e SCHEDULER_CRON='0 0 * * * ?' \
-                -e DATABASE_PATH=/app/data/currency-history \
-                -e UNKEY_ROOT_KEY=$UNKEY_ROOT_KEY \
-                -e INTERNAL_API_KEY=$UNKEY_INTERNAL_KEY \
-                ghcr.io/${{ github.repository }}:latest
+              echo '⏳ Waiting for services to start...'
+              sleep 10
 
               echo '✅ Deployment completed!'
-              sudo docker ps | grep currency-bot
             "
+
+          # Очистка
+          rm -rf "$TEMP_DIR" currency-bot-deploy.tar.gz
 
           echo "✅ Successfully deployed to $VM_NAME"
 
@@ -226,7 +253,63 @@ jobs:
           VM_NAME: ${{ secrets.GCC_VM_NAME }}
           VM_ZONE: ${{ secrets.GCC_VM_ZONE }}
         run: |
-          echo "🔍 Checking container status..."
+          echo "🔍 Running health checks..."
+
           gcloud compute ssh "$VM_NAME" \
             --zone="$VM_ZONE" \
-            --command="sudo docker ps --filter name=currency-bot --format '{{.Status}}'"
+            --command="
+              echo '📊 Container status:'
+              sudo sh -c 'cd /app/currency-bot && docker compose ps'
+
+              echo ''
+              echo '💾 Volume usage:'
+              sudo docker volume ls | grep currency-bot
+
+              echo ''
+              echo '🌐 API health:'
+              curl -s http://localhost:8080/swagger | head -n 1 && echo '✅ API is responding' || echo '❌ API is not responding'
+            "
+
+# ═══════════════════════════════════════════════════════════════════
+# Требуемые GitHub Secrets:
+# ═══════════════════════════════════════════════════════════════════
+#
+# GCC_TOKEN              - Google Cloud credentials JSON
+# GCC_VM_NAME            - Имя VM в GCP (например: proflyder-vm)
+# GCC_VM_ZONE            - Зона VM (например: us-central1-a)
+# BOT_TOKEN              - Telegram Bot Token
+# CHAT_ID                - Telegram Chat ID
+# UNKEY_ROOT_KEY         - Unkey Root Key для аутентификации
+# UNKEY_INTERNAL_KEY     - Unkey Internal API Key
+# GRADLE_ENCRYPTION_KEY  - (опционально) Ключ для кеша Gradle
+#
+# ═══════════════════════════════════════════════════════════════════
+# Требования к VM:
+# ═══════════════════════════════════════════════════════════════════
+#
+# На VM должен быть установлен Docker Compose v2:
+#   sudo apt update
+#   sudo apt install docker-compose-plugin -y
+#   docker compose version  # Проверка установки
+#
+# Подробнее: см. INSTALL_DOCKER_COMPOSE_V2.md в infra-monitoring
+#
+# ═══════════════════════════════════════════════════════════════════
+# Как работает деплой:
+# ═══════════════════════════════════════════════════════════════════
+#
+# 1. Запуск тестов (test job)
+# 2. Сборка JAR (build job)
+# 3. Сборка и публикация Docker образа в GHCR (docker job)
+# 4. Деплой на VM (deploy job):
+#    - Создание tar архива с docker-compose.yml и config/
+#    - Копирование архива на VM через gcloud compute scp
+#    - SSH на VM и выполнение команд:
+#      * Создание директории /app/currency-bot
+#      * Распаковка архива
+#      * Login в GHCR
+#      * Pull образа
+#      * docker compose up -d
+# 5. Health check
+#
+# ═══════════════════════════════════════════════════════════════════

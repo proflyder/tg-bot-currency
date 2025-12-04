@@ -55,7 +55,8 @@ fun Application.configureRouting() {
         // Telegram webhook - no authentication needed (Telegram sends updates)
         post("/telegram/webhook", {
             tags = listOf("Webhooks")
-            description = "Эндпоинт для приема обновлений от Telegram Bot API. Обрабатывает команды бота: /trigger, /start, /help"
+            description =
+                "Эндпоинт для приема обновлений от Telegram Bot API. Обрабатывает команды бота: /trigger, /start, /help"
             response {
                 HttpStatusCode.OK to {
                     description = "Webhook обработан успешно"
@@ -219,7 +220,8 @@ fun Application.configureRouting() {
             // Manual trigger for currency update
             post("/api/trigger", {
                 tags = listOf("Triggers")
-                description = "Запускает немедленное обновление курсов: парсинг с kurs.kz, сохранение в БД и отправка в Telegram канал (независимо от порогов изменения)"
+                description =
+                    "Запускает немедленное обновление курсов: парсинг с kurs.kz, сохранение в БД и отправка в Telegram канал (независимо от порогов изменения)"
                 securitySchemeNames = listOf("UnkeyAuth")
                 response {
                     HttpStatusCode.OK to {

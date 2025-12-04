@@ -1,16 +1,10 @@
 package dev.proflyder.currency.scheduler
 
-import dev.proflyder.currency.TestFixtures
 import dev.proflyder.currency.di.AppConfig
 import dev.proflyder.currency.domain.usecase.SendCurrencyRatesUseCase
-import io.kotest.matchers.shouldBe
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.*
 import org.quartz.JobDataMap
 import org.quartz.JobDetail
 import org.quartz.JobExecutionContext

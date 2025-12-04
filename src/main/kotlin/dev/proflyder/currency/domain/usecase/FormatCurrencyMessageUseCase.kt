@@ -23,12 +23,12 @@ class FormatCurrencyMessageUseCase {
             appendLine("💱 *Курсы валют на kurs.kz*")
             appendLine()
             appendLine("🇺🇸 *USD → KZT*")
-            appendLine("  Покупка: ${"%.2f".format(rates.usdToKzt.sell)} ₸")  // я покупаю USD (обменник продает)
-            appendLine("  Продажа: ${"%.2f".format(rates.usdToKzt.buy)} ₸")   // я продаю USD (обменник покупает)
+            appendLine("💵 Покупка: `${"%.2f".format(rates.usdToKzt.sell)}` ₸")  // я покупаю USD (обменник продает)
+            appendLine("💸 Продажа: `${"%.2f".format(rates.usdToKzt.buy)}` ₸")   // я продаю USD (обменник покупает)
             appendLine()
             appendLine("🇷🇺 *RUB → KZT*")
-            appendLine("  Покупка: ${"%.2f".format(rates.rubToKzt.sell)} ₸")  // я покупаю RUB (обменник продает)
-            appendLine("  Продажа: ${"%.2f".format(rates.rubToKzt.buy)} ₸")   // я продаю RUB (обменник покупает)
+            appendLine("💵 Покупка: `${"%.2f".format(rates.rubToKzt.sell)}` ₸")  // я покупаю RUB (обменник продает)
+            appendLine("💸 Продажа: `${"%.2f".format(rates.rubToKzt.buy)}` ₸")   // я продаю RUB (обменник покупает)
 
             // Если есть алерты - добавляем их
             if (alerts.isNotEmpty()) {
@@ -39,7 +39,7 @@ class FormatCurrencyMessageUseCase {
                 // Предупреждения
                 if (warnings.isNotEmpty()) {
                     appendLine()
-                    appendLine("─────────────────────────")
+                    appendLine("━━━━━━━━")
                     appendLine("⚠️ *ПРЕДУПРЕЖДЕНИЯ*")
                     appendLine()
                     warnings.forEach { alert ->
@@ -50,7 +50,7 @@ class FormatCurrencyMessageUseCase {
                 // Критические изменения
                 if (critical.isNotEmpty()) {
                     appendLine()
-                    appendLine("─────────────────────────")
+                    appendLine("━━━━━━━━")
                     appendLine("🚨 *КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ*")
                     appendLine()
                     critical.forEach { alert ->
@@ -76,10 +76,10 @@ class FormatCurrencyMessageUseCase {
         }
 
         return buildString {
-            append("$directionEmoji ${alert.pair.emoji} ${alert.pair.displayName} ")
-            append("$changeVerb на ${"%.2f".format(abs(alert.changePercent))}%% ")
+            append("$directionEmoji ${alert.pair.emoji} *${alert.pair.displayName}* ")
+            append("$changeVerb на `${"%.2f".format(abs(alert.changePercent))}%%` ")
             appendLine("за ${alert.period.displayName}")
-            appendLine("   Было: ${"%.2f".format(alert.oldRate)} ₸ → Сейчас: ${"%.2f".format(alert.newRate)} ₸")
+            appendLine("   `${"%.2f".format(alert.oldRate)}` ₸ → `${"%.2f".format(alert.newRate)}` ₸")
             appendLine()
         }
     }

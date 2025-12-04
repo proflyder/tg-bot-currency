@@ -4,16 +4,14 @@ import dev.proflyder.currency.TestFixtures
 import dev.proflyder.currency.domain.model.*
 import dev.proflyder.currency.domain.repository.CurrencyHistoryRepository
 import io.kotest.matchers.collections.shouldBeEmpty
-import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.*
 import kotlin.time.Duration.Companion.hours
 
 @DisplayName("CheckCurrencyThresholdsUseCase")
@@ -317,10 +315,10 @@ class CheckCurrencyThresholdsUseCaseTest {
 
             // Первый период вернет успех, остальные - ошибку
             coEvery { historyRepository.getRecordBefore(any()) } returns
-                Result.success(historicalRecord) andThen
-                Result.failure(Exception("Error")) andThen
-                Result.failure(Exception("Error")) andThen
-                Result.failure(Exception("Error"))
+                    Result.success(historicalRecord) andThen
+                    Result.failure(Exception("Error")) andThen
+                    Result.failure(Exception("Error")) andThen
+                    Result.failure(Exception("Error"))
 
             // Act
             val result = useCase(currentRates)

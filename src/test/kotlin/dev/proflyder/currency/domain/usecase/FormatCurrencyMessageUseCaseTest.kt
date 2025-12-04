@@ -7,8 +7,8 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
 
 @DisplayName("FormatCurrencyMessageUseCase")
 class FormatCurrencyMessageUseCaseTest {
@@ -104,7 +104,6 @@ class FormatCurrencyMessageUseCaseTest {
 
             // Assert
             message shouldContain "⚠️ *ПРЕДУПРЕЖДЕНИЯ*"
-            message shouldContain "─────────────────────────"
         }
 
         @Test
@@ -224,7 +223,6 @@ class FormatCurrencyMessageUseCaseTest {
 
             // Assert
             message shouldContain "🚨 *КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ*"
-            message shouldContain "─────────────────────────"
         }
 
         @Test

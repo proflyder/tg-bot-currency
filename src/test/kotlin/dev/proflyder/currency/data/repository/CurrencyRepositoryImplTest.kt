@@ -3,7 +3,10 @@ package dev.proflyder.currency.data.repository
 import dev.proflyder.currency.TestFixtures
 import dev.proflyder.currency.data.remote.parser.KursKzParser
 import io.kotest.matchers.shouldBe
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach

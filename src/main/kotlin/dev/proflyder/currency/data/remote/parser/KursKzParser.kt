@@ -138,8 +138,18 @@ class KursKzParser(
         val topRubBuy = rubBuySorted.take(topCount.coerceAtMost(rubBuySorted.size))
         val avgRubBuy = topRubBuy.average()
 
-        logger.info("Top-$topCount USD rates: buy=%.2f (from ${topUsdBuy.size}), sell=%.2f (from ${topUsdSell.size})".format(avgUsdBuy, avgUsdSell))
-        logger.info("Top-$topCount RUB rates: buy=%.2f (from ${topRubBuy.size}), sell=%.2f (from ${topRubSell.size})".format(avgRubBuy, avgRubSell))
+        logger.info(
+            "Top-$topCount USD rates: buy=%.2f (from ${topUsdBuy.size}), sell=%.2f (from ${topUsdSell.size})".format(
+                avgUsdBuy,
+                avgUsdSell
+            )
+        )
+        logger.info(
+            "Top-$topCount RUB rates: buy=%.2f (from ${topRubBuy.size}), sell=%.2f (from ${topRubSell.size})".format(
+                avgRubBuy,
+                avgRubSell
+            )
+        )
 
         return CurrencyRate(
             usdToKzt = ExchangeRate(buy = avgUsdBuy, sell = avgUsdSell),

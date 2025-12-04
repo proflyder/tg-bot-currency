@@ -1,23 +1,23 @@
 ktor:
-    application:
-        modules:
-            - dev.proflyder.currency.ApplicationKt.module
-    deployment:
-        port: 8080
-        host: 0.0.0.0
+  application:
+    modules:
+      - dev.proflyder.currency.ApplicationKt.module
+  deployment:
+    port: 8080
+    host: 0.0.0.0
 
 bot:
-    token: ${BOT_TOKEN:your-bot-token-here}
-    chatId: ${CHAT_ID:your-chat-id-here}
+  token: ${BOT_TOKEN:your-bot-token-here}
+  chatId: ${CHAT_ID:your-chat-id-here}
 
 scheduler:
-    cron: ${SCHEDULER_CRON:0 0 * * * ?}  # Каждый час по умолчанию (секунды минуты часы день месяц день_недели)
+  cron: ${SCHEDULER_CRON:0 0 * * * ?}  # Каждый час по умолчанию (секунды минуты часы день месяц день_недели)
 
 database:
-    path: ${DATABASE_PATH:data/currency-history}
+  path: ${DATABASE_PATH:data/currency-history}
 
 unkey:
-    rootKey: ${UNKEY_ROOT_KEY:your-unkey-root-key-here}
+  rootKey: ${UNKEY_ROOT_KEY:your-unkey-root-key-here}
 
 api:
-    internalKey: ${INTERNAL_API_KEY:your-internal-api-key-here}
+  internalKey: ${UNKEY_INTERNAL_KEY:your-unkey-internal-key-here}

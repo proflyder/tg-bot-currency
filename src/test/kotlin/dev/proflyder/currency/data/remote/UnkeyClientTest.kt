@@ -1,7 +1,6 @@
 package dev.proflyder.currency.data.remote
 
 import dev.proflyder.currency.data.remote.unkey.UnkeyClient
-import dev.proflyder.currency.data.remote.unkey.UnkeyVerifyResponse
 import io.kotest.matchers.shouldBe
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
@@ -29,7 +28,8 @@ class UnkeyClientTest {
             // Arrange
             val mockEngine = MockEngine { request ->
                 respond(
-                    content = ByteReadChannel("""
+                    content = ByteReadChannel(
+                        """
                         {
                             "data": {
                                 "valid": true,
@@ -38,7 +38,8 @@ class UnkeyClientTest {
                                 "ownerId": "owner_123"
                             }
                         }
-                    """.trimIndent()),
+                    """.trimIndent()
+                    ),
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json")
                 )
@@ -73,14 +74,16 @@ class UnkeyClientTest {
             // Arrange
             val mockEngine = MockEngine { request ->
                 respond(
-                    content = ByteReadChannel("""
+                    content = ByteReadChannel(
+                        """
                         {
                             "data": {
                                 "valid": false,
                                 "code": "NOT_FOUND"
                             }
                         }
-                    """.trimIndent()),
+                    """.trimIndent()
+                    ),
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json")
                 )
@@ -210,7 +213,8 @@ class UnkeyClientTest {
             // Arrange
             val mockEngine = MockEngine { request ->
                 respond(
-                    content = ByteReadChannel("""
+                    content = ByteReadChannel(
+                        """
                         {
                             "data": {
                                 "valid": true,
@@ -228,7 +232,8 @@ class UnkeyClientTest {
                                 "requestId": "req_123"
                             }
                         }
-                    """.trimIndent()),
+                    """.trimIndent()
+                    ),
                     status = HttpStatusCode.OK,
                     headers = headersOf(HttpHeaders.ContentType, "application/json")
                 )

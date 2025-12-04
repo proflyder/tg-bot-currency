@@ -9,12 +9,15 @@ import dev.proflyder.currency.scheduler.QuartzSchedulerManager
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.client.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.calllogging.*
+import io.ktor.server.request.*
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.koin.ktor.ext.get
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
+import org.slf4j.event.Level
 
 fun main(args: Array<String>) {
     // КРИТИЧНО: загружаем .env ДО запуска Ktor,
@@ -35,6 +38,21 @@ fun Application.module() {
         unkeyRootKey = environment.config.property("unkey.rootKey").getString(),
         internalApiKey = environment.config.property("api.internalKey").getString()
     )
+
+    // Настраиваем логирование HTTP запросов
+    install(CallLogging) {
+        level = Level.INFO
+        filter { call ->
+            // Логируем все запросы кроме healthcheck и telegram webhook (webhook логируется в контроллере)
+            !call.request.uri.startsWith("/api/health") && !call.request.uri.startsWith("/telegram/webhook")
+        }
+        format { call ->
+            val status = call.response.status()
+            val method = call.request.httpMethod.value
+            val uri = call.request.uri
+            "$status: $method - $uri"
+        }
+    }
 
     // Настраиваем Koin
     install(Koin) {

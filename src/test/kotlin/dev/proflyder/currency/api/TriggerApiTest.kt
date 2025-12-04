@@ -49,7 +49,7 @@ class TriggerApiTest : KoinTest {
             )
 
             val mockSendCurrencyRatesUseCase = mockk<SendCurrencyRatesUseCase>()
-            coEvery { mockSendCurrencyRatesUseCase(any(), any()) } returns Result.success(Unit)
+            coEvery { mockSendCurrencyRatesUseCase(any(), any(), any()) } returns Result.success(Unit)
 
             val mockUnkeyClient = mockk<UnkeyClient>()
             coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(
@@ -95,7 +95,7 @@ class TriggerApiTest : KoinTest {
             body.message shouldBe "Currency rates updated and sent to Telegram successfully"
 
             // Verify use case was called with correct chatId
-            coVerify(exactly = 1) { mockSendCurrencyRatesUseCase("test-chat-id", true) }
+            coVerify(exactly = 1) { mockSendCurrencyRatesUseCase("test-chat-id", true, false) }
         }
 
         @Test
@@ -111,7 +111,7 @@ class TriggerApiTest : KoinTest {
             )
 
             val mockSendCurrencyRatesUseCase = mockk<SendCurrencyRatesUseCase>()
-            coEvery { mockSendCurrencyRatesUseCase(any(), any()) } returns Result.failure(
+            coEvery { mockSendCurrencyRatesUseCase(any(), any(), any()) } returns Result.failure(
                 Exception("Failed to parse currency rates")
             )
 
@@ -157,7 +157,7 @@ class TriggerApiTest : KoinTest {
             body.message shouldNotBe null
             body.message shouldBe "Failed to update currency rates: Failed to parse currency rates"
 
-            coVerify(exactly = 1) { mockSendCurrencyRatesUseCase("test-chat-id", true) }
+            coVerify(exactly = 1) { mockSendCurrencyRatesUseCase("test-chat-id", true, false) }
         }
 
         @Test
@@ -204,7 +204,7 @@ class TriggerApiTest : KoinTest {
             response.status shouldBe HttpStatusCode.Unauthorized
 
             // Use case should not be called without authentication
-            coVerify(exactly = 0) { mockSendCurrencyRatesUseCase(any(), any()) }
+            coVerify(exactly = 0) { mockSendCurrencyRatesUseCase(any(), any(), any()) }
         }
 
         @Test
@@ -258,7 +258,7 @@ class TriggerApiTest : KoinTest {
             // Assert
             response.status shouldBe HttpStatusCode.Unauthorized
 
-            coVerify(exactly = 0) { mockSendCurrencyRatesUseCase(any(), any()) }
+            coVerify(exactly = 0) { mockSendCurrencyRatesUseCase(any(), any(), any()) }
         }
 
         @Test
@@ -274,7 +274,7 @@ class TriggerApiTest : KoinTest {
             )
 
             val mockSendCurrencyRatesUseCase = mockk<SendCurrencyRatesUseCase>()
-            coEvery { mockSendCurrencyRatesUseCase(any(), any()) } returns Result.success(Unit)
+            coEvery { mockSendCurrencyRatesUseCase(any(), any(), any()) } returns Result.success(Unit)
 
             val mockUnkeyClient = mockk<UnkeyClient>()
             coEvery { mockUnkeyClient.verifyKey(any()) } returns Result.success(

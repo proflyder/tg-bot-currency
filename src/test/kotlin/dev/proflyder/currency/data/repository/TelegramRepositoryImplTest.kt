@@ -8,11 +8,7 @@ import dev.proflyder.currency.data.remote.telegram.TelegramApi
 import io.kotest.matchers.shouldBe
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.*
 
 @DisplayName("TelegramRepositoryImpl")
 class TelegramRepositoryImplTest {

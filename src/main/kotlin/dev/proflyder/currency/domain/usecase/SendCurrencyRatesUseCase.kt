@@ -15,7 +15,11 @@ class SendCurrencyRatesUseCase(
 ) {
     private val logger = logger()
 
-    suspend operator fun invoke(chatId: String, forceNotification: Boolean = false): Result<Unit> {
+    suspend operator fun invoke(
+        chatId: String,
+        forceNotification: Boolean = false,
+        saveToHistory: Boolean = true
+    ): Result<Unit> {
         return try {
             logger.info("Fetching currency rates...")
             val ratesResult = currencyRepository.getCurrentRates()
@@ -26,17 +30,21 @@ class SendCurrencyRatesUseCase(
 
                     val timestamp = Clock.System.now()
 
-                    // 1. Сначала сохраняем в историю (всегда!)
-                    logger.info("Saving to history...")
-                    currencyHistoryRepository.saveRecord(rates, timestamp).fold(
-                        onSuccess = {
-                            logger.info("History saved successfully")
-                        },
-                        onFailure = { error ->
-                            logger.error("Failed to save history", error)
-                            // Не падаем если не удалось сохранить историю
-                        }
-                    )
+                    // 1. Сохраняем в историю только если saveToHistory=true
+                    if (saveToHistory) {
+                        logger.info("Saving to history...")
+                        currencyHistoryRepository.saveRecord(rates, timestamp).fold(
+                            onSuccess = {
+                                logger.info("History saved successfully")
+                            },
+                            onFailure = { error ->
+                                logger.error("Failed to save history", error)
+                                // Не падаем если не удалось сохранить историю
+                            }
+                        )
+                    } else {
+                        logger.info("Skipping history save (manual trigger)")
+                    }
 
                     // 2. Проверяем трешхолды
                     logger.info("Checking thresholds...")

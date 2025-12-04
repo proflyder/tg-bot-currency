@@ -1,0 +1,119 @@
+# ═══════════════════════════════════════════════════════════════════
+# Promtail Configuration для Currency Bot
+# Отправляет логи в централизованный Loki (infra-monitoring)
+# ═══════════════════════════════════════════════════════════════════
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: info
+
+# ───────────────────────────────────────────────────────────────────
+# Позиции - отслеживание прочитанных логов
+# ───────────────────────────────────────────────────────────────────
+positions:
+  filename: /tmp/positions.yaml
+
+# ───────────────────────────────────────────────────────────────────
+# Клиент Loki - куда отправлять логи
+# ───────────────────────────────────────────────────────────────────
+clients:
+  - url: http://host.docker.internal:3100/loki/api/v1/push
+    # Если не работает host.docker.internal, используйте:
+    # - url: http://172.17.0.1:3100/loki/api/v1/push  (для Linux)
+    # - url: http://loki:3100/loki/api/v1/push       (если в одной сети)
+
+    # Retry настройки
+    backoff_config:
+      min_period: 500ms
+      max_period: 5m
+      max_retries: 10
+
+    # Буферизация для производительности
+    batchsize: 1048576  # 1MB
+    batchwait: 1s
+
+    timeout: 10s
+
+# ───────────────────────────────────────────────────────────────────
+# Scrape Configs - что собирать
+# ───────────────────────────────────────────────────────────────────
+scrape_configs:
+  # Currency Bot логи
+  - job_name: currency-bot
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: currency-bot
+          environment: production
+          __path__: /var/log/currency-bot/*.log
+
+    # ───────────────────────────────────────────────────────────────
+    # Pipeline Stages - обработка логов перед отправкой
+    # ───────────────────────────────────────────────────────────────
+    pipeline_stages:
+      # 1. Парсинг JSON логов (если ваши логи в JSON формате)
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            logger: logger
+            message: message
+            thread: thread
+
+      # 2. Извлечение timestamp из логов
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+
+      # 3. Добавление labels из полей логов
+      - labels:
+          level:
+          logger:
+
+      # 4. Форматирование output сообщения
+      - output:
+          source: message
+
+      # 5. Фильтрация - не отправлять debug логи (опционально)
+      # - match:
+      #     selector: '{level="DEBUG"}'
+      #     action: drop
+
+# ═══════════════════════════════════════════════════════════════════
+# Описание конфигурации:
+# ═══════════════════════════════════════════════════════════════════
+#
+# ЧТО СОБИРАЕТСЯ:
+# ───────────────────────────────────────────────────────────────────
+# - Все файлы *.log в /var/log/currency-bot/
+# - Автоматическое отслеживание новых файлов
+# - Ротация логов поддерживается (по дате)
+#
+# LABELS:
+# ───────────────────────────────────────────────────────────────────
+# - job: currency-bot          # Название проекта
+# - environment: production     # Окружение
+# - level: ERROR/WARN/INFO      # Уровень из логов
+# - logger: имя логгера         # Класс/модуль
+#
+# ИСПОЛЬЗОВАНИЕ В GRAFANA:
+# ───────────────────────────────────────────────────────────────────
+# {job="currency-bot"}                         # Все логи
+# {job="currency-bot", level="ERROR"}          # Только ошибки
+# {job="currency-bot"} |= "Quartz"            # Поиск по тексту
+# {job="currency-bot"} | json                 # Парсинг JSON
+#
+# TROUBLESHOOTING:
+# ───────────────────────────────────────────────────────────────────
+# Проверить что Promtail работает:
+# docker logs promtail-currency-bot
+#
+# Проверить метрики Promtail:
+# curl http://localhost:9080/metrics
+#
+# Проверить что логи доходят до Loki:
+# curl 'http://localhost:3100/loki/api/v1/query?query={job="currency-bot"}'
+#
+# ═══════════════════════════════════════════════════════════════════

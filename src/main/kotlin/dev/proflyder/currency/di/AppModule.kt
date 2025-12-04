@@ -11,12 +11,7 @@ import dev.proflyder.currency.domain.repository.CurrencyHistoryRepository
 import dev.proflyder.currency.domain.repository.CurrencyRepository
 import dev.proflyder.currency.domain.repository.TelegramRepository
 import dev.proflyder.currency.domain.telegram.TelegramCommandHandler
-import dev.proflyder.currency.domain.usecase.CheckCurrencyThresholdsUseCase
-import dev.proflyder.currency.domain.usecase.DeleteCurrencyHistoryUseCase
-import dev.proflyder.currency.domain.usecase.FormatCurrencyMessageUseCase
-import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
-import dev.proflyder.currency.domain.usecase.GetLatestCurrencyRateUseCase
-import dev.proflyder.currency.domain.usecase.SendCurrencyRatesUseCase
+import dev.proflyder.currency.domain.usecase.*
 import dev.proflyder.currency.presentation.controller.CurrencyHistoryController
 import dev.proflyder.currency.presentation.controller.TelegramWebhookController
 import dev.proflyder.currency.presentation.controller.TriggerController
@@ -41,7 +36,7 @@ val appModule = module {
                 })
             }
             install(Logging) {
-                level = LogLevel.ALL
+                level = LogLevel.INFO
             }
         }
     }
@@ -76,5 +71,5 @@ val appModule = module {
     single { QuartzSchedulerManager(get(), get()) }
 
     // Telegram Bot
-    single { TelegramCommandHandler(get(), get()) }
+    single { TelegramCommandHandler(get(), get()) } // TelegramApi, TriggerApiClient
 }

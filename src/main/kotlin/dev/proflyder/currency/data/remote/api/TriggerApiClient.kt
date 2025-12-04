@@ -1,5 +1,6 @@
 package dev.proflyder.currency.data.remote.api
 
+import dev.proflyder.currency.data.dto.TriggerRequestDto
 import dev.proflyder.currency.data.dto.TriggerResponseDto
 import dev.proflyder.currency.util.logger
 import io.ktor.client.*
@@ -20,14 +21,22 @@ class TriggerApiClient(
 
     /**
      * Вызвать endpoint POST /api/trigger для принудительного обновления курсов
+     *
+     * @param chatId ID чата Telegram, куда отправить сообщение. Если null, используется chatId из конфигурации.
      */
-    suspend fun triggerCurrencyUpdate(): Result<TriggerResponseDto> {
+    suspend fun triggerCurrencyUpdate(chatId: String? = null): Result<TriggerResponseDto> {
         return try {
-            logger.info("Calling POST /api/trigger, API key: $maskedApiKey")
+            val logMessage = if (chatId != null) {
+                "Calling POST /api/trigger for chat $chatId, API key: $maskedApiKey"
+            } else {
+                "Calling POST /api/trigger (default chat), API key: $maskedApiKey"
+            }
+            logger.info(logMessage)
 
             val response: TriggerResponseDto = httpClient.post("$baseUrl/api/trigger") {
                 header(HttpHeaders.Authorization, "Bearer $apiKey")
                 contentType(ContentType.Application.Json)
+                setBody(TriggerRequestDto(chatId = chatId))
             }.body()
 
             if (response.success) {

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   currency-bot:
     # Если DOCKER_IMAGE не указан в .env -> будет собирать локально (build)
@@ -37,6 +35,22 @@ services:
       # - ./data:/app/data
 
     restart: unless-stopped
+
+  # ═══════════════════════════════════════════════════════════════════
+  # Promtail - отправка логов в централизованный Loki
+  # ═══════════════════════════════════════════════════════════════════
+  promtail:
+    image: grafana/promtail:2.9.3
+    container_name: promtail-currency-bot
+    volumes:
+      - ./config/promtail-config.yml:/etc/promtail/config.yml:ro
+      # Читаем логи из того же volume что и currency-bot
+      - currency-bot-logs:/var/log/currency-bot:ro
+    command: -config.file=/etc/promtail/config.yml
+    restart: unless-stopped
+    # Используем host network для доступа к Loki на host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 # ═══════════════════════════════════════════════════════════════════
 # Named Volumes
