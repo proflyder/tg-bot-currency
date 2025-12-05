@@ -65,10 +65,12 @@ class TriggerApiTest : KoinTest {
                 install(Koin) {
                     modules(module {
                         single { mockController }
+                        single { mockk<dev.proflyder.currency.presentation.controller.CurrencyHistoryController>(relaxed = true) }
+                        single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
                 configureAuthentication(mockUnkeyClient)
-                configureRouting()
+                configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
 
             val client = createClient {
@@ -128,10 +130,12 @@ class TriggerApiTest : KoinTest {
                 install(Koin) {
                     modules(module {
                         single { mockController }
+                        single { mockk<dev.proflyder.currency.presentation.controller.CurrencyHistoryController>(relaxed = true) }
+                        single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
                 configureAuthentication(mockUnkeyClient)
-                configureRouting()
+                configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
 
             val client = createClient {
@@ -181,10 +185,12 @@ class TriggerApiTest : KoinTest {
                 install(Koin) {
                     modules(module {
                         single { mockController }
+                        single { mockk<dev.proflyder.currency.presentation.controller.CurrencyHistoryController>(relaxed = true) }
+                        single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
                 configureAuthentication(mockUnkeyClient)
-                configureRouting()
+                configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
 
             val client = createClient {
@@ -234,10 +240,12 @@ class TriggerApiTest : KoinTest {
                 install(Koin) {
                     modules(module {
                         single { mockController }
+                        single { mockk<dev.proflyder.currency.presentation.controller.CurrencyHistoryController>(relaxed = true) }
+                        single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
                 configureAuthentication(mockUnkeyClient)
-                configureRouting()
+                configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
 
             val client = createClient {
@@ -289,10 +297,12 @@ class TriggerApiTest : KoinTest {
                 install(Koin) {
                     modules(module {
                         single { mockController }
+                        single { mockk<dev.proflyder.currency.presentation.controller.CurrencyHistoryController>(relaxed = true) }
+                        single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
                 configureAuthentication(mockUnkeyClient)
-                configureRouting()
+                configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
 
             val client = createClient {

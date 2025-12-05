@@ -53,28 +53,26 @@ scrape_configs:
     # Pipeline Stages - обработка логов перед отправкой
     # ───────────────────────────────────────────────────────────────
     pipeline_stages:
-      # 1. Парсинг JSON логов (если ваши логи в JSON формате)
+      # 1. Парсинг JSON логов для извлечения labels
       - json:
           expressions:
-            timestamp: timestamp
             level: level
-            logger: logger
-            message: message
-            thread: thread
+            event: event
+            log_type: log_type
+            direction: direction
+            endpoint: endpoint
+            http_method: http_method
+            http_status: http_status
 
-      # 2. Извлечение timestamp из логов
-      - timestamp:
-          source: timestamp
-          format: RFC3339Nano
-
-      # 3. Добавление labels из полей логов
+      # 2. Добавление labels из полей логов
       - labels:
           level:
-          logger:
-
-      # 4. Форматирование output сообщения
-      - output:
-          source: message
+          event:
+          log_type:
+          direction:
+          endpoint:
+          http_method:
+          http_status:
 
       # 5. Фильтрация - не отправлять debug логи (опционально)
       # - match:

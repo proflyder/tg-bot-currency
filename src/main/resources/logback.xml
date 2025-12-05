@@ -9,30 +9,57 @@
     </appender>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- JSON Appender - для продакшна (структурированные логи) -->
+    <!-- JSON Appender - структурированные логи для Loki -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeMdcKeyName>request_id</includeMdcKeyName>
-            <includeMdcKeyName>user_id</includeMdcKeyName>
+            <!-- Включаем все MDC поля -->
+            <includeMdc>true</includeMdc>
+            <includeContext>false</includeContext>
+
+            <!-- Кастомные поля -->
+            <customFields>{"app":"currency-bot","env":"production"}</customFields>
+
+            <!-- Timestamp формат -->
+            <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSSZZ</timestampPattern>
+
+            <!-- Сокращенный stack trace -->
+            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                <maxDepthPerThrowable>10</maxDepthPerThrowable>
+                <maxLength>2048</maxLength>
+            </throwableConverter>
         </encoder>
     </appender>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- File Appender - логи в файл с ротацией -->
+    <!-- File Appender - логи в файл с ротацией (JSON формат для Loki) -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/currency-bot.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- Ротация каждый день -->
             <fileNamePattern>logs/currency-bot.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <!-- Хранить логи 30 дней -->
-            <maxHistory>30</maxHistory>
+            <!-- Хранить логи 14 дней -->
+            <maxHistory>14</maxHistory>
             <!-- Максимальный размер всех логов -->
             <totalSizeCap>1GB</totalSizeCap>
         </rollingPolicy>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <!-- Включаем все MDC поля -->
+            <includeMdc>true</includeMdc>
+            <includeContext>false</includeContext>
+
+            <!-- Кастомные поля -->
+            <customFields>{"app":"currency-bot","env":"production"}</customFields>
+
+            <!-- Timestamp формат -->
+            <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSSZZ</timestampPattern>
+
+            <!-- Сокращенный stack trace -->
+            <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                <maxDepthPerThrowable>10</maxDepthPerThrowable>
+                <maxLength>2048</maxLength>
+            </throwableConverter>
         </encoder>
     </appender>
 
@@ -40,21 +67,39 @@
     <!-- Логгеры для наших пакетов -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
 
+    <!-- HTTP Incoming - структурированное логирование входящих запросов -->
+    <logger name="http.incoming" level="INFO" additivity="false">
+        <appender-ref ref="JSON_CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- HTTP Outgoing - структурированное логирование исходящих запросов -->
+    <logger name="http.outgoing" level="INFO" additivity="false">
+        <appender-ref ref="JSON_CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
+    <!-- Business Events - бизнес-метрики (курсы валют, алерты) -->
+    <logger name="business.events" level="INFO" additivity="false">
+        <appender-ref ref="JSON_CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </logger>
+
     <!-- Наш код - детальное логирование -->
-    <logger name="dev.proflyder.currency" level="DEBUG" additivity="false">
-        <appender-ref ref="CONSOLE"/>
+    <logger name="dev.proflyder.currency" level="INFO" additivity="false">
+        <appender-ref ref="JSON_CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
 
     <!-- Парсер - особо важно логировать -->
-    <logger name="dev.proflyder.currency.data.remote.parser" level="DEBUG" additivity="false">
-        <appender-ref ref="CONSOLE"/>
+    <logger name="dev.proflyder.currency.data.remote.parser" level="INFO" additivity="false">
+        <appender-ref ref="JSON_CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
 
     <!-- Scheduler - важные события -->
     <logger name="dev.proflyder.currency.scheduler" level="INFO" additivity="false">
-        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="JSON_CONSOLE"/>
         <appender-ref ref="FILE"/>
     </logger>
 
@@ -63,25 +108,35 @@
     <!-- ═══════════════════════════════════════════════════════════════════ -->
 
     <!-- Ktor - только важное -->
-    <logger name="io.ktor" level="INFO"/>
+    <logger name="io.ktor" level="INFO">
+        <appender-ref ref="FILE"/>
+    </logger>
 
     <!-- HTTP Client - запросы/ответы -->
-    <logger name="io.ktor.client.HttpClient" level="INFO"/>
+    <logger name="io.ktor.client.HttpClient" level="INFO">
+        <appender-ref ref="FILE"/>
+    </logger>
 
     <!-- Koin DI -->
-    <logger name="org.koin" level="INFO"/>
+    <logger name="org.koin" level="INFO">
+        <appender-ref ref="FILE"/>
+    </logger>
 
     <!-- Netty -->
-    <logger name="io.netty" level="WARN"/>
+    <logger name="io.netty" level="WARN">
+        <appender-ref ref="FILE"/>
+    </logger>
 
     <!-- Jetty -->
-    <logger name="org.eclipse.jetty" level="WARN"/>
+    <logger name="org.eclipse.jetty" level="WARN">
+        <appender-ref ref="FILE"/>
+    </logger>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- Root Logger -->
+    <!-- Root Logger - JSON формат для всех остальных логов -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="JSON_CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>
 </configuration>

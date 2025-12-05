@@ -1,6 +1,7 @@
 package dev.proflyder.currency.di
 
 import dev.proflyder.currency.data.remote.api.TriggerApiClient
+import dev.proflyder.currency.data.remote.logging.OutgoingRequestLogging
 import dev.proflyder.currency.data.remote.parser.KursKzParser
 import dev.proflyder.currency.data.remote.telegram.TelegramApi
 import dev.proflyder.currency.data.remote.unkey.UnkeyClient
@@ -38,6 +39,8 @@ val appModule = module {
             install(Logging) {
                 level = LogLevel.INFO
             }
+            // Структурированное логирование исходящих запросов
+            install(OutgoingRequestLogging)
         }
     }
 

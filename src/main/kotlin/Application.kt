@@ -4,20 +4,19 @@ import dev.proflyder.currency.data.remote.unkey.UnkeyClient
 import dev.proflyder.currency.di.AppConfig
 import dev.proflyder.currency.di.appModule
 import dev.proflyder.currency.presentation.auth.configureAuthentication
+import dev.proflyder.currency.presentation.logging.configureRequestLogging
+import dev.proflyder.currency.presentation.metrics.configureMetrics
 import dev.proflyder.currency.presentation.swagger.configureSwagger
 import dev.proflyder.currency.scheduler.QuartzSchedulerManager
 import io.github.cdimascio.dotenv.dotenv
 import io.ktor.client.*
 import io.ktor.server.application.*
-import io.ktor.server.plugins.calllogging.*
-import io.ktor.server.request.*
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.koin.ktor.ext.get
 import org.koin.ktor.ext.inject
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
-import org.slf4j.event.Level
 
 fun main(args: Array<String>) {
     // КРИТИЧНО: загружаем .env ДО запуска Ktor,
@@ -39,21 +38,6 @@ fun Application.module() {
         internalApiKey = environment.config.property("api.internalKey").getString()
     )
 
-    // Настраиваем логирование HTTP запросов
-    install(CallLogging) {
-        level = Level.INFO
-        filter { call ->
-            // Логируем все запросы кроме healthcheck и telegram webhook (webhook логируется в контроллере)
-            !call.request.uri.startsWith("/api/health") && !call.request.uri.startsWith("/telegram/webhook")
-        }
-        format { call ->
-            val status = call.response.status()
-            val method = call.request.httpMethod.value
-            val uri = call.request.uri
-            "$status: $method - $uri"
-        }
-    }
-
     // Настраиваем Koin
     install(Koin) {
         slf4jLogger()
@@ -73,6 +57,12 @@ fun Application.module() {
     // Настраиваем Swagger UI
     configureSwagger()
 
+    // Настраиваем Prometheus метрики (CPU, Memory)
+    val prometheusRegistry = configureMetrics()
+
+    // Настраиваем структурированное логирование входящих запросов
+    configureRequestLogging()
+
     // Настраиваем authentication
     configureAuthentication(unkeyClient)
 
@@ -80,7 +70,7 @@ fun Application.module() {
     scheduler.start()
 
     // Настраиваем роутинг
-    configureRouting()
+    configureRouting(prometheusRegistry)
 
     // Останавливаем scheduler и закрываем ресурсы при остановке приложения
     monitor.subscribe(ApplicationStopping) {

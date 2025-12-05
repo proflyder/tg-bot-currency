@@ -26,42 +26,21 @@ class TelegramWebhookController(
      */
     suspend fun handleWebhook(call: RoutingCall) {
         try {
-            // Читаем RAW body как текст
             val rawBody = call.receiveText()
-
-            logger.info("=== RAW Telegram webhook request ===")
-            logger.info("URI: ${call.request.uri}")
-            logger.info("Headers: ${call.request.headers.entries().joinToString { "${it.key}: ${it.value}" }}")
-            logger.info("Body: $rawBody")
-            logger.info("====================================")
-
-            // Десериализуем вручную из прочитанного текста
             val update = json.decodeFromString<TelegramUpdate>(rawBody)
 
-            logger.info("Received Telegram update ${update.updateId}")
-            logger.info("Telegram webhook body: $update")
-
-            // Обрабатываем все типы сообщений с текстом
             val messageToHandle = update.message
                 ?: update.editedMessage
                 ?: update.channelPost
                 ?: update.editedChannelPost
 
             messageToHandle?.let { message ->
-                val messageType = when {
-                    update.editedMessage != null -> "edited message"
-                    update.channelPost != null -> "channel post"
-                    update.editedChannelPost != null -> "edited channel post"
-                    else -> "message"
-                }
-                logger.info("Processing $messageType from ${message.chat.id} (${message.chat.title ?: "private"}): ${message.text}")
+                logger.info("Processing Telegram message from ${message.chat.id}: ${message.text}")
                 commandHandler.handleMessage(message)
             } ?: run {
-                // Если это другой тип обновления (callback, inline query и т.д.)
                 logger.debug("Received non-message update: ${update.updateId}")
             }
 
-            // Telegram ожидает ответ OK
             call.respond(HttpStatusCode.OK, "OK")
         } catch (e: Exception) {
             logger.error("Failed to handle Telegram webhook", e)

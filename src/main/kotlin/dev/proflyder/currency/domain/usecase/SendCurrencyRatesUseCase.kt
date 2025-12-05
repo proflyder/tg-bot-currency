@@ -5,6 +5,8 @@ import dev.proflyder.currency.domain.repository.CurrencyRepository
 import dev.proflyder.currency.domain.repository.TelegramRepository
 import dev.proflyder.currency.util.logger
 import kotlinx.datetime.Clock
+import org.slf4j.LoggerFactory
+import org.slf4j.MDC
 
 class SendCurrencyRatesUseCase(
     private val currencyRepository: CurrencyRepository,
@@ -14,6 +16,7 @@ class SendCurrencyRatesUseCase(
     private val formatMessageUseCase: FormatCurrencyMessageUseCase
 ) {
     private val logger = logger()
+    private val businessLogger = LoggerFactory.getLogger("business.events")
 
     suspend operator fun invoke(
         chatId: String,
@@ -29,6 +32,10 @@ class SendCurrencyRatesUseCase(
                     logger.info("Rates fetched successfully")
 
                     val timestamp = Clock.System.now()
+
+                    // Структурированное логирование курсов для мониторинга (всегда)
+                    logCurrencyRate("USD", "KZT", rates.usdToKzt.buy, rates.usdToKzt.sell, timestamp)
+                    logCurrencyRate("RUB", "KZT", rates.rubToKzt.buy, rates.rubToKzt.sell, timestamp)
 
                     // 1. Сохраняем в историю только если saveToHistory=true
                     if (saveToHistory) {
@@ -102,6 +109,32 @@ class SendCurrencyRatesUseCase(
             )
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Логирует курс валюты в структурированном формате для мониторинга
+     */
+    private fun logCurrencyRate(
+        currencyFrom: String,
+        currencyTo: String,
+        buyRate: Double,
+        sellRate: Double,
+        timestamp: kotlinx.datetime.Instant
+    ) {
+        try {
+            // Structured fields для JSON логирования
+            MDC.put("event", "currency_rate_updated")
+            MDC.put("currency_from", currencyFrom)
+            MDC.put("currency_to", currencyTo)
+            MDC.put("rate_buy", buyRate.toString())
+            MDC.put("rate_sell", sellRate.toString())
+            MDC.put("timestamp", timestamp.toEpochMilliseconds().toString())
+            MDC.put("log_type", "business_metric")
+
+            businessLogger.info("CURRENCY_RATE_UPDATED - $currencyFrom/$currencyTo buy=$buyRate sell=$sellRate")
+        } finally {
+            MDC.clear()
         }
     }
 }

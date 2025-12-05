@@ -17,7 +17,6 @@ class TriggerApiClient(
     private val baseUrl: String = "http://localhost:8080"
 ) {
     private val logger = logger()
-    private val maskedApiKey = apiKey.take(8) + "***"
 
     /**
      * Вызвать endpoint POST /api/trigger для принудительного обновления курсов
@@ -26,13 +25,6 @@ class TriggerApiClient(
      */
     suspend fun triggerCurrencyUpdate(chatId: String? = null): Result<TriggerResponseDto> {
         return try {
-            val logMessage = if (chatId != null) {
-                "Calling POST /api/trigger for chat $chatId, API key: $maskedApiKey"
-            } else {
-                "Calling POST /api/trigger (default chat), API key: $maskedApiKey"
-            }
-            logger.info(logMessage)
-
             val response: TriggerResponseDto = httpClient.post("$baseUrl/api/trigger") {
                 header(HttpHeaders.Authorization, "Bearer $apiKey")
                 contentType(ContentType.Application.Json)
@@ -43,11 +35,9 @@ class TriggerApiClient(
                 logger.info("Successfully triggered currency update: ${response.message}")
                 Result.success(response)
             } else {
-                logger.error("Failed to trigger currency update: ${response.message}")
                 Result.failure(Exception("API error: ${response.message}"))
             }
         } catch (e: Exception) {
-            logger.error("Failed to call POST /api/trigger", e)
             Result.failure(e)
         }
     }
