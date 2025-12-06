@@ -9,6 +9,7 @@ import dev.proflyder.currency.di.AppConfig
 import dev.proflyder.currency.domain.usecase.SendCurrencyRatesUseCase
 import dev.proflyder.currency.presentation.auth.configureAuthentication
 import dev.proflyder.currency.presentation.controller.TriggerController
+import dev.proflyder.currency.presentation.exception.configureExceptionHandling
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.ktor.client.call.*
@@ -69,6 +70,7 @@ class TriggerApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -93,15 +95,15 @@ class TriggerApiTest : KoinTest {
             response.contentType()?.withoutParameters() shouldBe ContentType.Application.Json
 
             val body = response.body<TriggerResponseDto>()
-            body.success shouldBe true
             body.message shouldBe "Currency rates updated and sent to Telegram successfully"
+            body.executionTimeMs shouldNotBe null
 
             // Verify use case was called with correct chatId
             coVerify(exactly = 1) { mockSendCurrencyRatesUseCase("test-chat-id", true, false) }
         }
 
         @Test
-        fun `должен вернуть 500 при ошибке выполнения use case`() = testApplication {
+        fun `должен вернуть 502 при ошибке выполнения use case`() = testApplication {
             // Arrange
             val testConfig = AppConfig(
                 botToken = "test-token",
@@ -134,6 +136,7 @@ class TriggerApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -154,12 +157,7 @@ class TriggerApiTest : KoinTest {
             }
 
             // Assert
-            response.status shouldBe HttpStatusCode.InternalServerError
-
-            val body = response.body<TriggerResponseDto>()
-            body.success shouldBe false
-            body.message shouldNotBe null
-            body.message shouldBe "Failed to update currency rates: Failed to parse currency rates"
+            response.status shouldBe HttpStatusCode.BadGateway
 
             coVerify(exactly = 1) { mockSendCurrencyRatesUseCase("test-chat-id", true, false) }
         }
@@ -189,6 +187,7 @@ class TriggerApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -244,6 +243,7 @@ class TriggerApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -301,6 +301,7 @@ class TriggerApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -324,8 +325,8 @@ class TriggerApiTest : KoinTest {
             response.status shouldBe HttpStatusCode.OK
 
             val body = response.body<TriggerResponseDto>()
-            body.success shouldBe true
             body.message shouldNotBe null
+            body.executionTimeMs shouldNotBe null
         }
     }
 }

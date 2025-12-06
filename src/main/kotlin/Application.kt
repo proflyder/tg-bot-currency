@@ -4,6 +4,7 @@ import dev.proflyder.currency.data.remote.unkey.UnkeyClient
 import dev.proflyder.currency.di.AppConfig
 import dev.proflyder.currency.di.appModule
 import dev.proflyder.currency.presentation.auth.configureAuthentication
+import dev.proflyder.currency.presentation.exception.configureExceptionHandling
 import dev.proflyder.currency.presentation.logging.configureRequestLogging
 import dev.proflyder.currency.presentation.metrics.configureMetrics
 import dev.proflyder.currency.presentation.swagger.configureSwagger
@@ -62,6 +63,9 @@ fun Application.module() {
 
     // Настраиваем структурированное логирование входящих запросов
     configureRequestLogging()
+
+    // Настраиваем глобальную обработку исключений
+    configureExceptionHandling()
 
     // Настраиваем authentication
     configureAuthentication(unkeyClient)

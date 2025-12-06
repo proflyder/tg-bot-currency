@@ -11,7 +11,7 @@ class TelegramRepositoryImpl(
         val request = SendMessageRequest(
             chatId = chatId,
             text = message,
-            parseMode = "Markdown"
+            parseMode = "HTML"
         )
 
         return telegramApi.sendMessage(request).map { }

@@ -11,6 +11,7 @@ import dev.proflyder.currency.domain.model.ExchangeRateSnapshot
 import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
 import dev.proflyder.currency.presentation.auth.configureAuthentication
 import dev.proflyder.currency.presentation.controller.CurrencyHistoryController
+import dev.proflyder.currency.presentation.exception.configureExceptionHandling
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -77,6 +78,7 @@ class AuthenticationTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -99,8 +101,8 @@ class AuthenticationTest : KoinTest {
             // Assert
             response.status shouldBe HttpStatusCode.OK
             val body = response.body<CurrencyHistoryResponseDto>()
-            body.success shouldBe true
-            body.data.records.size shouldBe 1
+            body.records.size shouldBe 1
+            body.totalCount shouldBe 1
         }
 
         @Test
@@ -118,6 +120,7 @@ class AuthenticationTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -165,6 +168,7 @@ class AuthenticationTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -203,6 +207,7 @@ class AuthenticationTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -247,6 +252,7 @@ class AuthenticationTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -285,6 +291,7 @@ class AuthenticationTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }

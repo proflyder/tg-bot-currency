@@ -22,6 +22,7 @@ class TriggerApiClient(
      * Вызвать endpoint POST /api/trigger для принудительного обновления курсов
      *
      * @param chatId ID чата Telegram, куда отправить сообщение. Если null, используется chatId из конфигурации.
+     * @return Result с TriggerResponseDto при успехе (HTTP 200) или Exception при ошибке (HTTP 4xx/5xx)
      */
     suspend fun triggerCurrencyUpdate(chatId: String? = null): Result<TriggerResponseDto> {
         return try {
@@ -31,13 +32,10 @@ class TriggerApiClient(
                 setBody(TriggerRequestDto(chatId = chatId))
             }.body()
 
-            if (response.success) {
-                logger.info("Successfully triggered currency update: ${response.message}")
-                Result.success(response)
-            } else {
-                Result.failure(Exception("API error: ${response.message}"))
-            }
+            logger.info("Successfully triggered currency update in ${response.executionTimeMs}ms: ${response.message}")
+            Result.success(response)
         } catch (e: Exception) {
+            logger.error("Failed to trigger currency update", e)
             Result.failure(e)
         }
     }

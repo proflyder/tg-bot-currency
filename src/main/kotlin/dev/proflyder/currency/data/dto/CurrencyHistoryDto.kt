@@ -6,22 +6,16 @@ import kotlinx.serialization.Serializable
 
 /**
  * DTO для ответа API с историей курсов валют
+ *
+ * Статус успеха определяется HTTP статус кодом (200 = успех, 4xx/5xx = ошибка).
+ * Для ошибок используется ErrorResponse с унифицированным форматом.
  */
 @Serializable
 data class CurrencyHistoryResponseDto(
-    val success: Boolean,
-    val data: CurrencyHistoryDataDto,
-    val message: String? = null
-)
-
-/**
- * DTO данных истории курсов
- */
-@Serializable
-data class CurrencyHistoryDataDto(
     val records: List<CurrencyRateRecordDto>,
     val totalCount: Int
 )
+
 
 /**
  * DTO одной записи курса валюты

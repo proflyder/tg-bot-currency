@@ -16,6 +16,7 @@ import dev.proflyder.currency.domain.usecase.GetCurrencyHistoryUseCase
 import dev.proflyder.currency.domain.usecase.GetLatestCurrencyRateUseCase
 import dev.proflyder.currency.presentation.auth.configureAuthentication
 import dev.proflyder.currency.presentation.controller.CurrencyHistoryController
+import dev.proflyder.currency.presentation.exception.configureExceptionHandling
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.ktor.client.call.*
@@ -84,6 +85,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -108,10 +110,8 @@ class CurrencyHistoryApiTest : KoinTest {
             response.contentType()?.withoutParameters() shouldBe ContentType.Application.Json
 
             val body = response.body<CurrencyHistoryResponseDto>()
-            body.success shouldBe true
-            body.data.records.size shouldBe 2
-            body.data.totalCount shouldBe 2
-            body.message shouldBe "Currency history fetched successfully"
+            body.records.size shouldBe 2
+            body.totalCount shouldBe 2
         }
 
         @Test
@@ -137,6 +137,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -160,9 +161,8 @@ class CurrencyHistoryApiTest : KoinTest {
             response.status shouldBe HttpStatusCode.OK
 
             val body = response.body<CurrencyHistoryResponseDto>()
-            body.success shouldBe true
-            body.data.records.size shouldBe 0
-            body.data.totalCount shouldBe 0
+            body.records.size shouldBe 0
+            body.totalCount shouldBe 0
         }
 
         @Test
@@ -188,6 +188,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -209,13 +210,6 @@ class CurrencyHistoryApiTest : KoinTest {
 
             // Assert
             response.status shouldBe HttpStatusCode.InternalServerError
-
-            val body = response.body<CurrencyHistoryResponseDto>()
-            body.success shouldBe false
-            body.data.records.size shouldBe 0
-            body.data.totalCount shouldBe 0
-            body.message shouldNotBe null
-            body.message!! shouldBe "Failed to fetch currency history: Database error"
         }
 
         @Test
@@ -255,6 +249,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -278,10 +273,9 @@ class CurrencyHistoryApiTest : KoinTest {
             response.status shouldBe HttpStatusCode.OK
 
             val body = response.body<CurrencyHistoryResponseDto>()
-            body.success shouldBe true
-            body.data.records.size shouldBe 1
+            body.records.size shouldBe 1
 
-            val record = body.data.records.first()
+            val record = body.records.first()
             record.timestamp shouldBe TestFixtures.sampleTimestamp
             record.rates.usdToKzt.buy shouldBe TestFixtures.sampleExchangeRateUsd.buy
             record.rates.usdToKzt.sell shouldBe TestFixtures.sampleExchangeRateUsd.sell
@@ -327,6 +321,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -351,12 +346,9 @@ class CurrencyHistoryApiTest : KoinTest {
             response.contentType()?.withoutParameters() shouldBe ContentType.Application.Json
 
             val body = response.body<LatestCurrencyRateResponseDto>()
-            body.success shouldBe true
-            body.data shouldNotBe null
-            body.data!!.timestamp shouldBe Instant.parse("2025-11-30T12:00:00Z")
-            body.data!!.rates.usdToKzt.buy shouldBe 485.50
-            body.data!!.rates.usdToKzt.sell shouldBe 487.20
-            body.message shouldBe "Latest currency rate fetched successfully"
+            body.timestamp shouldBe Instant.parse("2025-11-30T12:00:00Z")
+            body.rates.usdToKzt.buy shouldBe 485.50
+            body.rates.usdToKzt.sell shouldBe 487.20
         }
 
         @Test
@@ -383,6 +375,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -404,11 +397,6 @@ class CurrencyHistoryApiTest : KoinTest {
 
             // Assert
             response.status shouldBe HttpStatusCode.NotFound
-
-            val body = response.body<LatestCurrencyRateResponseDto>()
-            body.success shouldBe false
-            body.data shouldBe null
-            body.message shouldBe "No currency rates found"
         }
 
         @Test
@@ -435,6 +423,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -456,12 +445,6 @@ class CurrencyHistoryApiTest : KoinTest {
 
             // Assert
             response.status shouldBe HttpStatusCode.InternalServerError
-
-            val body = response.body<LatestCurrencyRateResponseDto>()
-            body.success shouldBe false
-            body.data shouldBe null
-            body.message shouldNotBe null
-            body.message!! shouldBe "Failed to fetch latest currency rate: Database connection error"
         }
 
         @Test
@@ -502,6 +485,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -525,10 +509,7 @@ class CurrencyHistoryApiTest : KoinTest {
             response.status shouldBe HttpStatusCode.OK
 
             val body = response.body<LatestCurrencyRateResponseDto>()
-            body.success shouldBe true
-            body.data shouldNotBe null
-
-            val record = body.data!!
+            val record = body
             record.timestamp shouldBe TestFixtures.sampleTimestamp
             record.rates.usdToKzt.buy shouldBe TestFixtures.sampleExchangeRateUsd.buy
             record.rates.usdToKzt.sell shouldBe TestFixtures.sampleExchangeRateUsd.sell
@@ -554,6 +535,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -607,6 +589,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -631,7 +614,6 @@ class CurrencyHistoryApiTest : KoinTest {
             response.contentType()?.withoutParameters() shouldBe ContentType.Application.Json
 
             val body = response.body<DeleteHistoryResponseDto>()
-            body.success shouldBe true
             body.deletedCount shouldBe deletedCount
             body.message shouldBe "Successfully deleted 50 currency history records"
         }
@@ -661,6 +643,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -684,7 +667,6 @@ class CurrencyHistoryApiTest : KoinTest {
             response.status shouldBe HttpStatusCode.OK
 
             val body = response.body<DeleteHistoryResponseDto>()
-            body.success shouldBe true
             body.deletedCount shouldBe 0
             body.message shouldBe "Successfully deleted 0 currency history records"
         }
@@ -714,6 +696,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -735,11 +718,6 @@ class CurrencyHistoryApiTest : KoinTest {
 
             // Assert
             response.status shouldBe HttpStatusCode.InternalServerError
-
-            val body = response.body<DeleteHistoryResponseDto>()
-            body.success shouldBe false
-            body.message shouldNotBe null
-            body.message shouldBe "Failed to delete currency history: Database error"
         }
 
         @Test
@@ -761,6 +739,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -808,6 +787,7 @@ class CurrencyHistoryApiTest : KoinTest {
                         single { mockk<dev.proflyder.currency.presentation.controller.TelegramWebhookController>(relaxed = true) }
                     })
                 }
+                configureExceptionHandling()
                 configureAuthentication(mockUnkeyClient)
                 configureRouting(io.micrometer.prometheus.PrometheusMeterRegistry(io.micrometer.prometheus.PrometheusConfig.DEFAULT))
             }
@@ -831,7 +811,6 @@ class CurrencyHistoryApiTest : KoinTest {
             response.status shouldBe HttpStatusCode.OK
 
             val body = response.body<DeleteHistoryResponseDto>()
-            body.success shouldBe true
             body.deletedCount shouldBe deletedCount
             body.message shouldBe "Successfully deleted 100 currency history records"
         }

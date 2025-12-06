@@ -33,9 +33,9 @@ class FormatCurrencyMessageUseCaseTest {
             val message = useCase(rates, emptyList())
 
             // Assert
-            message shouldContain "💱 *Курсы валют на kurs.kz*"
-            message shouldContain "🇺🇸 *USD → KZT*"
-            message shouldContain "🇷🇺 *RUB → KZT*"
+            message shouldContain "💱 <b>Курсы валют на kurs.kz</b>"
+            message shouldContain "🇺🇸 <b>USD → KZT</b>"
+            message shouldContain "🇷🇺 <b>RUB → KZT</b>"
             message shouldContain "Покупка:"
             message shouldContain "Продажа:"
 
@@ -103,7 +103,7 @@ class FormatCurrencyMessageUseCaseTest {
             val message = useCase(rates, listOf(alert))
 
             // Assert
-            message shouldContain "⚠️ *ПРЕДУПРЕЖДЕНИЯ*"
+            message shouldContain "⚠️ <b>ПРЕДУПРЕЖДЕНИЯ</b>"
         }
 
         @Test
@@ -191,7 +191,7 @@ class FormatCurrencyMessageUseCaseTest {
             val message = useCase(rates, alerts)
 
             // Assert
-            message shouldContain "⚠️ *ПРЕДУПРЕЖДЕНИЯ*"
+            message shouldContain "⚠️ <b>ПРЕДУПРЕЖДЕНИЯ</b>"
             // Должны быть оба алерта
             message shouldContain "USD → KZT"
             message shouldContain "RUB → KZT"
@@ -222,7 +222,7 @@ class FormatCurrencyMessageUseCaseTest {
             val message = useCase(rates, listOf(alert))
 
             // Assert
-            message shouldContain "🚨 *КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ*"
+            message shouldContain "🚨 <b>КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ</b>"
         }
 
         @Test
@@ -243,7 +243,7 @@ class FormatCurrencyMessageUseCaseTest {
             val message = useCase(rates, listOf(alert))
 
             // Assert
-            message shouldContain "🚨 *КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ*"
+            message shouldContain "🚨 <b>КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ</b>"
             message shouldContain "📉"
             message shouldContain "USD → KZT"
             message shouldContain "упал"
@@ -287,8 +287,8 @@ class FormatCurrencyMessageUseCaseTest {
 
             // Assert
             // Должны быть обе секции
-            message shouldContain "⚠️ *ПРЕДУПРЕЖДЕНИЯ*"
-            message shouldContain "🚨 *КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ*"
+            message shouldContain "⚠️ <b>ПРЕДУПРЕЖДЕНИЯ</b>"
+            message shouldContain "🚨 <b>КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ</b>"
 
             // Проверяем порядок (WARNING должен идти перед CRITICAL)
             val warningIndex = message.indexOf("ПРЕДУПРЕЖДЕНИЯ")
@@ -336,12 +336,12 @@ class FormatCurrencyMessageUseCaseTest {
             val message = useCase(rates, alerts)
 
             // Assert
-            message shouldContain "⚠️ *ПРЕДУПРЕЖДЕНИЯ*"
-            message shouldContain "🚨 *КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ*"
+            message shouldContain "⚠️ <b>ПРЕДУПРЕЖДЕНИЯ</b>"
+            message shouldContain "🚨 <b>КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ</b>"
 
             // В секции ПРЕДУПРЕЖДЕНИЯ должно быть 2 алерта
-            val warningSection = message.substringAfter("⚠️ *ПРЕДУПРЕЖДЕНИЯ*")
-                .substringBefore("🚨 *КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ*")
+            val warningSection = message.substringAfter("⚠️ <b>ПРЕДУПРЕЖДЕНИЯ</b>")
+                .substringBefore("🚨 <b>КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ</b>")
             val warningAlertCount = warningSection.split("📈", "📉").size - 1
             warningAlertCount shouldBe 2
         }

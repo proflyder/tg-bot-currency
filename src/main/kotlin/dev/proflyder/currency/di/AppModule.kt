@@ -34,6 +34,7 @@ val appModule = module {
                     prettyPrint = true
                     isLenient = true
                     ignoreUnknownKeys = true
+                    encodeDefaults = true  // Important: encode fields with default values
                 })
             }
             install(Logging) {

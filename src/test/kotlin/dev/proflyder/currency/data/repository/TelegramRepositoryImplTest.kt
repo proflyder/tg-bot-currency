@@ -51,7 +51,7 @@ class TelegramRepositoryImplTest {
                     match { request ->
                         request.chatId == chatId &&
                                 request.text == message &&
-                                request.parseMode == "Markdown"
+                                request.parseMode == "HTML"
                     }
                 )
             }
@@ -92,10 +92,10 @@ class TelegramRepositoryImplTest {
         }
 
         @Test
-        fun `должен использовать Markdown для форматирования`() = runTest {
+        fun `должен использовать HTML для форматирования`() = runTest {
             // Arrange
             val chatId = TestFixtures.TEST_CHAT_ID
-            val message = "*Bold* _Italic_"
+            val message = "<b>Bold</b> <i>Italic</i>"
             val mockResponse = mockk<TelegramResponse<Message>>()
             val requestSlot = slot<SendMessageRequest>()
 
@@ -105,7 +105,7 @@ class TelegramRepositoryImplTest {
             repository.sendMessage(chatId, message)
 
             // Assert
-            requestSlot.captured.parseMode shouldBe "Markdown"
+            requestSlot.captured.parseMode shouldBe "HTML"
         }
 
         @Test
