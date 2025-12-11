@@ -18,6 +18,10 @@ WORKDIR /app
 # CI положит JAR в build/libs/*-all.jar
 COPY build/libs/*-all.jar app.jar
 
+# Копируем конфигурационные файлы для deployment
+COPY docker-compose.yml /configs/docker-compose.yml
+COPY config/ /configs/config/
+
 # Создаём директории для логов и данных
 RUN mkdir -p /app/logs && \
     mkdir -p /app/data
@@ -33,5 +37,17 @@ ENV DATABASE_PATH=""
 ENV UNKEY_ROOT_KEY=""
 ENV UNKEY_INTERNAL_KEY=""
 
-# Запуск приложения
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Создаём entrypoint скрипт
+RUN echo '#!/bin/sh' > /entrypoint.sh && \
+    echo 'if [ -d "/output" ]; then' >> /entrypoint.sh && \
+    echo '  echo "Copying configs to /output..."' >> /entrypoint.sh && \
+    echo '  cp -r /configs/* /output/' >> /entrypoint.sh && \
+    echo '  echo "Configs copied successfully"' >> /entrypoint.sh && \
+    echo '  exit 0' >> /entrypoint.sh && \
+    echo 'else' >> /entrypoint.sh && \
+    echo '  exec java -jar app.jar "$@"' >> /entrypoint.sh && \
+    echo 'fi' >> /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
+# Запуск через entrypoint скрипт
+ENTRYPOINT ["/entrypoint.sh"]

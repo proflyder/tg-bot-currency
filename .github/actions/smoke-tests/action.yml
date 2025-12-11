@@ -1,0 +1,135 @@
+name: Smoke Tests
+description: Run comprehensive health checks for currency bot
+
+inputs:
+  ssh_host:
+    description: SSH host address
+    required: true
+  ssh_user:
+    description: SSH username
+    required: true
+  ssh_key:
+    description: SSH private key
+    required: true
+  ssh_port:
+    description: SSH port
+    required: false
+    default: '22'
+
+runs:
+  using: composite
+  steps:
+    - name: Run smoke tests via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ inputs.ssh_host }}
+        username: ${{ inputs.ssh_user }}
+        key: ${{ inputs.ssh_key }}
+        port: ${{ inputs.ssh_port }}
+        timeout: 3m
+        script: |
+          echo '🧪 Running smoke tests...'
+          echo ''
+
+          # ───────────────────────────────────────────────────────────────
+          # 1. Проверка количества запущенных контейнеров
+          # ───────────────────────────────────────────────────────────────
+          echo '1. Checking running containers...'
+          RUNNING_CONTAINERS=$(sudo docker ps --filter "name=currency-bot" --filter "status=running" | grep -c "currency-bot" || echo "0")
+          if [ "$RUNNING_CONTAINERS" -ge 1 ]; then
+            echo "   ✅ Found $RUNNING_CONTAINERS running container(s)"
+          else
+            echo "   ❌ No running containers found!"
+            sudo docker ps -a | grep currency-bot || echo "No currency-bot containers found at all"
+            exit 1
+          fi
+          echo ''
+
+          # ───────────────────────────────────────────────────────────────
+          # 2. Проверка Docker Compose статуса
+          # ───────────────────────────────────────────────────────────────
+          echo '2. Checking Docker Compose status...'
+          cd /app/currency-bot
+          sudo docker compose ps
+          COMPOSE_RUNNING=$(sudo docker compose ps --status running | wc -l)
+          echo "   Running services: $COMPOSE_RUNNING"
+          if [ "$COMPOSE_RUNNING" -ge 1 ]; then
+            echo "   ✅ Currency bot service is running"
+          else
+            echo "   ❌ Currency bot service is not running!"
+            exit 1
+          fi
+          echo ''
+
+          # ───────────────────────────────────────────────────────────────
+          # 3. Проверка API health (с retry логикой)
+          # ───────────────────────────────────────────────────────────────
+          echo '3. Checking API health...'
+          for i in 1 2 3 4 5; do
+            if curl -sf http://localhost:8080/swagger > /dev/null 2>&1; then
+              echo "   ✅ API is responding"
+              break
+            else
+              if [ $i -eq 5 ]; then
+                echo "   ❌ API is not responding after 5 attempts!"
+                echo ''
+                echo '📋 Container logs (last 30 lines):'
+                sudo docker logs --tail 30 currency-bot
+                exit 1
+              fi
+              echo "   ⏳ Attempt $i/5 failed, retrying in 5s..."
+              sleep 5
+            fi
+          done
+          echo ''
+
+          # ───────────────────────────────────────────────────────────────
+          # 4. Проверка логов на критические ошибки
+          # ───────────────────────────────────────────────────────────────
+          echo '4. Checking logs for critical errors...'
+          CRITICAL_ERRORS=$(sudo docker logs currency-bot 2>&1 | grep -i "error\|exception\|fatal" | grep -v "INFO" | tail -10 || echo "")
+          if [ -z "$CRITICAL_ERRORS" ]; then
+            echo "   ✅ No critical errors in logs"
+          else
+            echo "   ⚠️  Found some errors in logs (non-blocking):"
+            echo "$CRITICAL_ERRORS"
+          fi
+          echo ''
+
+          # ───────────────────────────────────────────────────────────────
+          # 5. Проверка volumes
+          # ───────────────────────────────────────────────────────────────
+          echo '5. Checking volumes...'
+          VOLUMES=$(sudo docker volume ls | grep -c "currency-bot" || echo "0")
+          if [ "$VOLUMES" -ge 2 ]; then
+            echo "   ✅ Found $VOLUMES volume(s)"
+          else
+            echo "   ⚠️  Expected 2 volumes, found $VOLUMES"
+          fi
+          echo ''
+
+          # ───────────────────────────────────────────────────────────────
+          # 6. Проверка version файла
+          # ───────────────────────────────────────────────────────────────
+          echo '6. Checking deployment version...'
+          if [ -f /app/currency-bot/DEPLOYED_VERSION ]; then
+            echo "   ✅ Deployment version file exists:"
+            cat /app/currency-bot/DEPLOYED_VERSION | sed 's/^/      /'
+          else
+            echo "   ⚠️  No deployment version file found"
+          fi
+          echo ''
+
+          # ───────────────────────────────────────────────────────────────
+          # 7. Проверка Promtail (опционально)
+          # ───────────────────────────────────────────────────────────────
+          echo '7. Checking Promtail status...'
+          PROMTAIL_STATUS=$(sudo docker inspect promtail-currency-bot --format='{{.State.Status}}' 2>/dev/null || echo "not_found")
+          if [ "$PROMTAIL_STATUS" == "running" ]; then
+            echo "   ✅ Promtail is running"
+          else
+            echo "   ⚠️  Promtail status: $PROMTAIL_STATUS (non-blocking)"
+          fi
+          echo ''
+
+          echo '✅ All smoke tests passed!'

@@ -48,9 +48,10 @@ services:
       - currency-bot-logs:/var/log/currency-bot:ro
     command: -config.file=/etc/promtail/config.yml
     restart: unless-stopped
-    # Используем host network для доступа к Loki на host.docker.internal
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    # Подключаемся к сети monitoring для доступа к Loki
+    networks:
+      - default
+      - monitoring
 
 # ═══════════════════════════════════════════════════════════════════
 # Named Volumes
@@ -60,6 +61,15 @@ volumes:
     driver: local
   currency-bot-data:
     driver: local
+
+# ═══════════════════════════════════════════════════════════════════
+# Networks
+# ═══════════════════════════════════════════════════════════════════
+networks:
+  # Используем внешнюю сеть monitoring для доступа к Loki/Grafana
+  monitoring:
+    external: true
+    name: monitoring_monitoring
 
 # ═══════════════════════════════════════════════════════════════════
 # Как использовать:

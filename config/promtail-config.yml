@@ -18,10 +18,8 @@ positions:
 # Клиент Loki - куда отправлять логи
 # ───────────────────────────────────────────────────────────────────
 clients:
-  - url: http://host.docker.internal:3100/loki/api/v1/push
-    # Если не работает host.docker.internal, используйте:
-    # - url: http://172.17.0.1:3100/loki/api/v1/push  (для Linux)
-    # - url: http://loki:3100/loki/api/v1/push       (если в одной сети)
+  - url: http://loki:3100/loki/api/v1/push
+    # Используем имя контейнера, т.к. promtail подключен к сети monitoring
 
     # Retry настройки
     backoff_config:
@@ -113,5 +111,12 @@ scrape_configs:
 #
 # Проверить что логи доходят до Loki:
 # curl 'http://localhost:3100/loki/api/v1/query?query={job="currency-bot"}'
+#
+# Проверить сетевое подключение к Loki:
+# docker exec promtail-currency-bot wget -O- http://loki:3100/ready
+#
+# Проверить что promtail в нужных сетях:
+# docker inspect promtail-currency-bot | grep -A 10 Networks
+# (должен быть в currency-bot_default И monitoring_monitoring)
 #
 # ═══════════════════════════════════════════════════════════════════

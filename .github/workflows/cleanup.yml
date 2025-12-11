@@ -1,0 +1,21 @@
+name: Cleanup Old Docker Images
+
+on:
+  schedule:
+    # Каждое воскресенье в 00:00 UTC (06:00 Almaty)
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Cleanup VPS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cleanup old Docker images on VPS
+        uses: proflyder/infra-ci/.github/actions/full-cleanup@master
+        with:
+          ssh_host: ${{ secrets.SSH_HOST }}
+          ssh_user: ${{ secrets.SSH_USER }}
+          ssh_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh_port: ${{ secrets.SSH_PORT || 22 }}
