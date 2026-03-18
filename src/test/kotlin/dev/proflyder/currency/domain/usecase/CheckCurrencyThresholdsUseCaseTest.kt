@@ -3,6 +3,7 @@ package dev.proflyder.currency.domain.usecase
 import dev.proflyder.currency.TestFixtures
 import dev.proflyder.currency.domain.model.*
 import dev.proflyder.currency.domain.repository.CurrencyHistoryRepository
+import dev.proflyder.currency.domain.repository.SentAlertRepository
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery
@@ -18,12 +19,18 @@ import kotlin.time.Duration.Companion.hours
 class CheckCurrencyThresholdsUseCaseTest {
 
     private lateinit var historyRepository: CurrencyHistoryRepository
+    private lateinit var sentAlertRepository: SentAlertRepository
     private lateinit var useCase: CheckCurrencyThresholdsUseCase
 
     @BeforeEach
     fun setup() {
         historyRepository = mockk()
-        useCase = CheckCurrencyThresholdsUseCase(historyRepository)
+        sentAlertRepository = mockk()
+        // По умолчанию: нет предыдущих алертов, запись/очистка успешны
+        coEvery { sentAlertRepository.getLastSentAlert(any()) } returns Result.success(null)
+        coEvery { sentAlertRepository.recordSentAlert(any()) } returns Result.success(Unit)
+        coEvery { sentAlertRepository.clearSentAlert(any()) } returns Result.success(Unit)
+        useCase = CheckCurrencyThresholdsUseCase(historyRepository, sentAlertRepository)
     }
 
     @AfterEach
@@ -47,7 +54,7 @@ class CheckCurrencyThresholdsUseCaseTest {
             val historicalRecord = CurrencyRateRecord(
                 timestamp = Clock.System.now() - 2.hours,
                 rates = CurrencyRateSnapshot(
-                    usdToKzt = ExchangeRateSnapshot(buy = 480.0, sell = 485.0),
+                    usdToKzt = ExchangeRateSnapshot(buy = 485.0, sell = 485.0),
                     rubToKzt = ExchangeRateSnapshot(buy = 4.80, sell = 4.90)
                 )
             )
@@ -61,8 +68,8 @@ class CheckCurrencyThresholdsUseCaseTest {
             result.isSuccess shouldBe true
             val alerts = result.getOrThrow()
 
-            // Должны быть алерты для USD
-            val usdAlerts = alerts.filter { it.pair == CurrencyPair.USD_TO_KZT }
+            // Должны быть алерты для USD SELL
+            val usdAlerts = alerts.filter { it.pair == CurrencyPair.USD_TO_KZT && it.rateType == RateType.SELL }
             (usdAlerts.size > 0) shouldBe true
 
             // Проверяем что есть WARNING алерты
@@ -201,6 +208,64 @@ class CheckCurrencyThresholdsUseCaseTest {
             (usdAlerts.size > 0) shouldBe true
             (rubAlerts.size > 0) shouldBe true
         }
+
+        @Test
+        fun `должен проверять и BUY и SELL курсы`() = runTest {
+            // Arrange - buy вырос, sell остался
+            val currentRates = CurrencyRate(
+                usdToKzt = ExchangeRate(buy = 495.0, sell = 495.0), // buy +2.06%, sell +2.06%
+                rubToKzt = ExchangeRate(buy = 4.80, sell = 4.90)
+            )
+
+            val historicalRecord = CurrencyRateRecord(
+                timestamp = Clock.System.now() - 2.hours,
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(buy = 485.0, sell = 485.0),
+                    rubToKzt = ExchangeRateSnapshot(buy = 4.80, sell = 4.90)
+                )
+            )
+
+            coEvery { historyRepository.getRecordBefore(any()) } returns Result.success(historicalRecord)
+
+            // Act
+            val result = useCase(currentRates)
+
+            // Assert
+            result.isSuccess shouldBe true
+            val alerts = result.getOrThrow()
+
+            val buyAlerts = alerts.filter { it.pair == CurrencyPair.USD_TO_KZT && it.rateType == RateType.BUY }
+            val sellAlerts = alerts.filter { it.pair == CurrencyPair.USD_TO_KZT && it.rateType == RateType.SELL }
+
+            (buyAlerts.size > 0) shouldBe true
+            (sellAlerts.size > 0) shouldBe true
+        }
+
+        @Test
+        fun `алерт должен содержать rateType`() = runTest {
+            val currentRates = CurrencyRate(
+                usdToKzt = ExchangeRate(buy = 490.0, sell = 495.0),
+                rubToKzt = ExchangeRate(buy = 4.80, sell = 4.90)
+            )
+
+            val historicalRecord = CurrencyRateRecord(
+                timestamp = Clock.System.now() - 2.hours,
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(buy = 480.0, sell = 485.0),
+                    rubToKzt = ExchangeRateSnapshot(buy = 4.80, sell = 4.90)
+                )
+            )
+
+            coEvery { historyRepository.getRecordBefore(any()) } returns Result.success(historicalRecord)
+
+            val result = useCase(currentRates)
+            val alerts = result.getOrThrow()
+
+            // Каждый алерт должен иметь rateType
+            alerts.forEach { alert ->
+                (alert.rateType == RateType.BUY || alert.rateType == RateType.SELL) shouldBe true
+            }
+        }
     }
 
     @Nested
@@ -218,7 +283,7 @@ class CheckCurrencyThresholdsUseCaseTest {
             val historicalRecord = CurrencyRateRecord(
                 timestamp = Clock.System.now() - 2.hours,
                 rates = CurrencyRateSnapshot(
-                    usdToKzt = ExchangeRateSnapshot(buy = 480.0, sell = 485.0),
+                    usdToKzt = ExchangeRateSnapshot(buy = 485.0, sell = 485.0),
                     rubToKzt = ExchangeRateSnapshot(buy = 4.80, sell = 4.90)
                 )
             )
@@ -274,6 +339,203 @@ class CheckCurrencyThresholdsUseCaseTest {
 
             // Проверяем что вызывались все 4 периода
             coVerify(exactly = 4) { historyRepository.getRecordBefore(any()) }
+        }
+
+        @Test
+        fun `должен очистить sent alert при нормализации курса`() = runTest {
+            // Arrange - курс нормализовался (нет превышения)
+            val currentRates = CurrencyRate(
+                usdToKzt = ExchangeRate(buy = 485.0, sell = 485.1),
+                rubToKzt = ExchangeRate(buy = 4.80, sell = 4.90)
+            )
+
+            val historicalRecord = CurrencyRateRecord(
+                timestamp = Clock.System.now() - 2.hours,
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(buy = 485.0, sell = 485.0),
+                    rubToKzt = ExchangeRateSnapshot(buy = 4.80, sell = 4.90)
+                )
+            )
+
+            coEvery { historyRepository.getRecordBefore(any()) } returns Result.success(historicalRecord)
+
+            // Act
+            useCase(currentRates)
+
+            // Assert - clearSentAlert должен быть вызван (курс вернулся в норму)
+            coVerify(atLeast = 1) { sentAlertRepository.clearSentAlert(any()) }
+        }
+    }
+
+    @Nested
+    @DisplayName("Дедупликация алертов")
+    inner class AlertDeduplication {
+
+        @Test
+        fun `должен подавить дублирующий алерт если курс не изменился`() = runTest {
+            // Arrange: +0.62% — превышает только HOUR WARNING (0.5%), не CRITICAL (1.0%)
+            // Не превышает DAY/WEEK/MONTH пороги
+            val currentRates = CurrencyRate(
+                usdToKzt = ExchangeRate(buy = 488.0, sell = 488.0),
+                rubToKzt = ExchangeRate(buy = 4.90, sell = 4.90)
+            )
+
+            val historicalRecord = CurrencyRateRecord(
+                timestamp = Clock.System.now() - 2.hours,
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(buy = 485.0, sell = 485.0),
+                    rubToKzt = ExchangeRateSnapshot(buy = 4.90, sell = 4.90)
+                )
+            )
+
+            coEvery { historyRepository.getRecordBefore(any()) } returns Result.success(historicalRecord)
+
+            // Алерт уже отправлялся с тем же курсом — для всех ключей
+            coEvery { sentAlertRepository.getLastSentAlert(any()) } answers {
+                Result.success(
+                    SentAlert(
+                        key = firstArg(),
+                        level = AlertLevel.WARNING,
+                        direction = ChangeDirection.UP,
+                        rateAtAlert = 488.0, // Тот же курс что и текущий
+                        changePercent = 0.62,
+                        sentAt = Clock.System.now() - 1.hours
+                    )
+                )
+            }
+
+            // Act
+            val result = useCase(currentRates)
+
+            // Assert - алерты должны быть подавлены (курс не изменился с последнего алерта)
+            result.isSuccess shouldBe true
+            result.getOrThrow().shouldBeEmpty()
+        }
+
+        @Test
+        fun `должен отправить алерт при эскалации уровня`() = runTest {
+            // Arrange
+            val currentRates = CurrencyRate(
+                usdToKzt = ExchangeRate(buy = 490.0, sell = 500.0), // +3.09% = CRITICAL
+                rubToKzt = ExchangeRate(buy = 4.80, sell = 4.90)
+            )
+
+            val historicalRecord = CurrencyRateRecord(
+                timestamp = Clock.System.now() - 2.hours,
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(buy = 480.0, sell = 485.0),
+                    rubToKzt = ExchangeRateSnapshot(buy = 4.80, sell = 4.90)
+                )
+            )
+
+            coEvery { historyRepository.getRecordBefore(any()) } returns Result.success(historicalRecord)
+
+            // Предыдущий алерт был WARNING
+            coEvery { sentAlertRepository.getLastSentAlert(any()) } returns Result.success(
+                SentAlert(
+                    key = AlertKey(CurrencyPair.USD_TO_KZT, AlertPeriod.HOUR, RateType.SELL),
+                    level = AlertLevel.WARNING,
+                    direction = ChangeDirection.UP,
+                    rateAtAlert = 500.0,
+                    changePercent = 2.06,
+                    sentAt = Clock.System.now() - 1.hours
+                )
+            )
+
+            // Act
+            val result = useCase(currentRates)
+
+            // Assert - CRITICAL должен пройти несмотря на дедупликацию
+            result.isSuccess shouldBe true
+            val alerts = result.getOrThrow()
+            val criticalAlerts = alerts.filter {
+                it.pair == CurrencyPair.USD_TO_KZT && it.level == AlertLevel.CRITICAL
+            }
+            (criticalAlerts.size > 0) shouldBe true
+        }
+
+        @Test
+        fun `должен отправить алерт при смене направления`() = runTest {
+            // Arrange - курс упал (а раньше рос)
+            val currentRates = CurrencyRate(
+                usdToKzt = ExchangeRate(buy = 475.0, sell = 480.0), // sell: 480 < 485 = DOWN
+                rubToKzt = ExchangeRate(buy = 4.80, sell = 4.90)
+            )
+
+            val historicalRecord = CurrencyRateRecord(
+                timestamp = Clock.System.now() - 2.hours,
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(buy = 490.0, sell = 490.0), // sell: 490 -> 480 = -2.04%
+                    rubToKzt = ExchangeRateSnapshot(buy = 4.80, sell = 4.90)
+                )
+            )
+
+            coEvery { historyRepository.getRecordBefore(any()) } returns Result.success(historicalRecord)
+
+            // Предыдущий алерт был UP
+            coEvery { sentAlertRepository.getLastSentAlert(any()) } returns Result.success(
+                SentAlert(
+                    key = AlertKey(CurrencyPair.USD_TO_KZT, AlertPeriod.HOUR, RateType.SELL),
+                    level = AlertLevel.WARNING,
+                    direction = ChangeDirection.UP, // Раньше рос
+                    rateAtAlert = 480.0,
+                    changePercent = 2.06,
+                    sentAt = Clock.System.now() - 1.hours
+                )
+            )
+
+            // Act
+            val result = useCase(currentRates)
+
+            // Assert - алерт о смене направления должен пройти
+            result.isSuccess shouldBe true
+            val alerts = result.getOrThrow()
+            val downAlerts = alerts.filter {
+                it.pair == CurrencyPair.USD_TO_KZT && it.direction == ChangeDirection.DOWN
+            }
+            (downAlerts.size > 0) shouldBe true
+        }
+
+        @Test
+        fun `должен отправить алерт если курс значительно изменился с последнего алерта`() = runTest {
+            // Arrange
+            val currentRates = CurrencyRate(
+                usdToKzt = ExchangeRate(buy = 492.0, sell = 498.0), // sell: 498 vs 495 = +0.6% > re-alert 0.25%
+                rubToKzt = ExchangeRate(buy = 4.80, sell = 4.90)
+            )
+
+            val historicalRecord = CurrencyRateRecord(
+                timestamp = Clock.System.now() - 2.hours,
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(buy = 480.0, sell = 485.0),
+                    rubToKzt = ExchangeRateSnapshot(buy = 4.80, sell = 4.90)
+                )
+            )
+
+            coEvery { historyRepository.getRecordBefore(any()) } returns Result.success(historicalRecord)
+
+            // Предыдущий алерт с другим курсом
+            coEvery { sentAlertRepository.getLastSentAlert(any()) } returns Result.success(
+                SentAlert(
+                    key = AlertKey(CurrencyPair.USD_TO_KZT, AlertPeriod.HOUR, RateType.SELL),
+                    level = AlertLevel.WARNING,
+                    direction = ChangeDirection.UP,
+                    rateAtAlert = 495.0, // Курс был 495, сейчас 498 — разница 0.6%
+                    changePercent = 2.06,
+                    sentAt = Clock.System.now() - 1.hours
+                )
+            )
+
+            // Act
+            val result = useCase(currentRates)
+
+            // Assert
+            result.isSuccess shouldBe true
+            val alerts = result.getOrThrow()
+            val usdSellAlerts = alerts.filter {
+                it.pair == CurrencyPair.USD_TO_KZT && it.rateType == RateType.SELL
+            }
+            (usdSellAlerts.size > 0) shouldBe true
         }
     }
 

@@ -76,7 +76,7 @@ class FormatCurrencyMessageUseCase {
         }
 
         return buildString {
-            append("$directionEmoji ${alert.pair.emoji} <b>${alert.pair.displayName}</b> ")
+            append("$directionEmoji ${alert.pair.emoji} <b>${alert.pair.displayName}</b> (${alert.rateType.displayName}) ")
             append("$changeVerb на <code>${"%.2f".format(abs(alert.changePercent))}%</code> ")
             appendLine("за ${alert.period.displayName}")
             appendLine("   <code>${"%.2f".format(alert.oldRate)}</code> ₸ → <code>${"%.2f".format(alert.newRate)}</code> ₸")

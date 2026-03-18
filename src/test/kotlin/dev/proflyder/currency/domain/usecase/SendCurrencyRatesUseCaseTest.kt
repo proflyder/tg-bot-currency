@@ -1,8 +1,10 @@
 package dev.proflyder.currency.domain.usecase
 
 import dev.proflyder.currency.TestFixtures
+import dev.proflyder.currency.domain.model.*
 import dev.proflyder.currency.domain.repository.CurrencyHistoryRepository
 import dev.proflyder.currency.domain.repository.CurrencyRepository
+import dev.proflyder.currency.domain.repository.SentAlertRepository
 import dev.proflyder.currency.domain.repository.TelegramRepository
 import io.kotest.matchers.shouldBe
 import io.mockk.*
@@ -17,6 +19,7 @@ class SendCurrencyRatesUseCaseTest {
     private lateinit var historyRepository: CurrencyHistoryRepository
     private lateinit var checkThresholdsUseCase: CheckCurrencyThresholdsUseCase
     private lateinit var formatMessageUseCase: FormatCurrencyMessageUseCase
+    private lateinit var sentAlertRepository: SentAlertRepository
     private lateinit var useCase: SendCurrencyRatesUseCase
 
     @BeforeEach
@@ -27,6 +30,9 @@ class SendCurrencyRatesUseCaseTest {
         historyRepository = mockk()
         checkThresholdsUseCase = mockk()
         formatMessageUseCase = mockk()
+        sentAlertRepository = mockk()
+
+        coEvery { sentAlertRepository.recordSentAlert(any()) } returns Result.success(Unit)
 
         // Создаем UseCase с моками
         useCase = SendCurrencyRatesUseCase(
@@ -34,7 +40,8 @@ class SendCurrencyRatesUseCaseTest {
             telegramRepository = telegramRepository,
             currencyHistoryRepository = historyRepository,
             checkThresholdsUseCase = checkThresholdsUseCase,
-            formatMessageUseCase = formatMessageUseCase
+            formatMessageUseCase = formatMessageUseCase,
+            sentAlertRepository = sentAlertRepository
         )
     }
 
@@ -42,6 +49,17 @@ class SendCurrencyRatesUseCaseTest {
     fun tearDown() {
         unmockkAll()
     }
+
+    private fun createSampleAlert(): CurrencyAlert = CurrencyAlert(
+        level = AlertLevel.WARNING,
+        period = AlertPeriod.HOUR,
+        pair = CurrencyPair.USD_TO_KZT,
+        rateType = RateType.SELL,
+        direction = ChangeDirection.UP,
+        changePercent = 1.5,
+        oldRate = 480.0,
+        newRate = 487.2
+    )
 
     @Nested
     @DisplayName("Успешные сценарии")
@@ -52,10 +70,11 @@ class SendCurrencyRatesUseCaseTest {
             // Arrange
             val chatId = TestFixtures.TEST_CHAT_ID
             val rates = TestFixtures.sampleCurrencyRate
+            val alert = createSampleAlert()
 
             coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
             coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
-            coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(mockk())) // Есть алерты
+            coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(alert))
             every { formatMessageUseCase(any(), any()) } returns "test message"
             coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.success(Unit)
             coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
@@ -73,8 +92,60 @@ class SendCurrencyRatesUseCaseTest {
                 checkThresholdsUseCase(rates)
                 formatMessageUseCase(rates, any())
                 telegramRepository.sendMessage(chatId, any())
+                sentAlertRepository.recordSentAlert(any())
                 historyRepository.cleanOldRecords(30)
             }
+        }
+
+        @Test
+        fun `должен записать sent alert после успешной отправки`() = runTest {
+            // Arrange
+            val chatId = TestFixtures.TEST_CHAT_ID
+            val rates = TestFixtures.sampleCurrencyRate
+            val alert = createSampleAlert()
+
+            coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
+            coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
+            coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(alert))
+            every { formatMessageUseCase(any(), any()) } returns "test message"
+            coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.success(Unit)
+            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
+
+            // Act
+            useCase(chatId)
+
+            // Assert
+            coVerify(exactly = 1) { sentAlertRepository.recordSentAlert(any()) }
+        }
+
+        @Test
+        fun `должен записать несколько sent alerts для нескольких алертов`() = runTest {
+            val chatId = TestFixtures.TEST_CHAT_ID
+            val rates = TestFixtures.sampleCurrencyRate
+            val alerts = listOf(
+                createSampleAlert(),
+                CurrencyAlert(
+                    level = AlertLevel.WARNING,
+                    period = AlertPeriod.DAY,
+                    pair = CurrencyPair.RUB_TO_KZT,
+                    rateType = RateType.BUY,
+                    direction = ChangeDirection.DOWN,
+                    changePercent = -1.2,
+                    oldRate = 4.90,
+                    newRate = 4.84
+                )
+            )
+
+            coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
+            coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
+            coEvery { checkThresholdsUseCase(any()) } returns Result.success(alerts)
+            every { formatMessageUseCase(any(), any()) } returns "test message"
+            coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.success(Unit)
+            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
+
+            useCase(chatId)
+
+            coVerify(exactly = 2) { sentAlertRepository.recordSentAlert(any()) }
         }
 
         @Test
@@ -97,6 +168,7 @@ class SendCurrencyRatesUseCaseTest {
             // Telegram НЕ должен вызываться
             coVerify(exactly = 0) { telegramRepository.sendMessage(any(), any()) }
             coVerify(exactly = 0) { formatMessageUseCase(any(), any()) }
+            coVerify(exactly = 0) { sentAlertRepository.recordSentAlert(any()) }
 
             // Но история должна сохраниться
             coVerify(exactly = 1) { historyRepository.saveRecord(rates, any()) }
@@ -153,10 +225,11 @@ class SendCurrencyRatesUseCaseTest {
             val chatId = TestFixtures.TEST_CHAT_ID
             val rates = TestFixtures.sampleCurrencyRate
             val error = Exception("Telegram API error")
+            val alert = createSampleAlert()
 
             coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
             coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
-            coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(mockk())) // Есть алерты
+            coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(alert))
             every { formatMessageUseCase(any(), any()) } returns "test message"
             coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.failure(error)
 
@@ -165,6 +238,9 @@ class SendCurrencyRatesUseCaseTest {
 
             // Assert
             result.isFailure shouldBe true
+
+            // sent alerts НЕ должны записываться если отправка упала
+            coVerify(exactly = 0) { sentAlertRepository.recordSentAlert(any()) }
 
             // История должна сохраниться несмотря на ошибку отправки
             coVerify(exactly = 1) { historyRepository.saveRecord(any(), any()) }
@@ -233,6 +309,26 @@ class SendCurrencyRatesUseCaseTest {
             // Telegram не должен вызываться
             coVerify(exactly = 0) { telegramRepository.sendMessage(any(), any()) }
         }
+
+        @Test
+        fun `должен успешно завершиться даже если не удалось записать sent alert`() = runTest {
+            val chatId = TestFixtures.TEST_CHAT_ID
+            val rates = TestFixtures.sampleCurrencyRate
+            val alert = createSampleAlert()
+
+            coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
+            coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
+            coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(alert))
+            every { formatMessageUseCase(any(), any()) } returns "test message"
+            coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.success(Unit)
+            coEvery { sentAlertRepository.recordSentAlert(any()) } returns Result.failure(Exception("DB error"))
+            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
+
+            val result = useCase(chatId)
+
+            // Должен завершиться успешно — ошибка записи sent alert не критична
+            result.isSuccess shouldBe true
+        }
     }
 
     @Nested
@@ -244,10 +340,11 @@ class SendCurrencyRatesUseCaseTest {
             // Arrange
             val chatId = ""
             val rates = TestFixtures.sampleCurrencyRate
+            val alert = createSampleAlert()
 
             coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
             coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
-            coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(mockk()))
+            coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(alert))
             every { formatMessageUseCase(any(), any()) } returns "test message"
             coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.success(Unit)
             coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
