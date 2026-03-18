@@ -18,8 +18,9 @@ class SentAlertRepositoryImplTest {
 
     @BeforeEach
     fun setup() {
-        val testDbPath = "mem:sent-alert-test-${System.nanoTime()}-${Thread.currentThread().id}"
-        repository = SentAlertRepositoryImpl(testDbPath)
+        val dbName = "mem:sent-alert-test-${System.nanoTime()}-${Thread.currentThread().id}"
+        val database = org.jetbrains.exposed.sql.Database.connect("jdbc:h2:$dbName;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
+        repository = SentAlertRepositoryImpl(database)
     }
 
     private fun createKey(

@@ -341,6 +341,51 @@ class CurrencyHistoryRepositoryImplTest {
     }
 
     @Nested
+    @DisplayName("Получение записей за интервал")
+    inner class GetRecordsByDateRange {
+
+        @Test
+        fun `должен вернуть записи в указанном интервале`() = runTest {
+            val now = Clock.System.now()
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 5.days)
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 3.days)
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 1.days)
+
+            val result = repository.getRecordsByDateRange(now - 4.days, now - 2.days)
+
+            result.isSuccess shouldBe true
+            result.getOrThrow().size shouldBe 1
+        }
+
+        @Test
+        fun `должен вернуть пустой список если нет записей в интервале`() = runTest {
+            val now = Clock.System.now()
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 10.days)
+
+            val result = repository.getRecordsByDateRange(now - 5.days, now - 3.days)
+
+            result.isSuccess shouldBe true
+            result.getOrThrow().size shouldBe 0
+        }
+
+        @Test
+        fun `должен включать граничные записи`() = runTest {
+            val now = Clock.System.now()
+            val from = now - 3.days
+            val to = now - 1.days
+
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, from)
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, to)
+            repository.saveRecord(TestFixtures.sampleCurrencyRate, now - 2.days)
+
+            val result = repository.getRecordsByDateRange(from, to)
+
+            result.isSuccess shouldBe true
+            result.getOrThrow().size shouldBe 3
+        }
+    }
+
+    @Nested
     @DisplayName("Удаление всех записей")
     inner class DeleteAll {
 

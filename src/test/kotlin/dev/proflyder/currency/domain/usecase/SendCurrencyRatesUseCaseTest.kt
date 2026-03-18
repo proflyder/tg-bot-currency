@@ -77,7 +77,6 @@ class SendCurrencyRatesUseCaseTest {
             coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(alert))
             every { formatMessageUseCase(any(), any()) } returns "test message"
             coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.success(Unit)
-            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
 
             // Act
             val result = useCase(chatId)
@@ -93,7 +92,6 @@ class SendCurrencyRatesUseCaseTest {
                 formatMessageUseCase(rates, any())
                 telegramRepository.sendMessage(chatId, any())
                 sentAlertRepository.recordSentAlert(any())
-                historyRepository.cleanOldRecords(30)
             }
         }
 
@@ -109,7 +107,6 @@ class SendCurrencyRatesUseCaseTest {
             coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(alert))
             every { formatMessageUseCase(any(), any()) } returns "test message"
             coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.success(Unit)
-            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
 
             // Act
             useCase(chatId)
@@ -141,7 +138,6 @@ class SendCurrencyRatesUseCaseTest {
             coEvery { checkThresholdsUseCase(any()) } returns Result.success(alerts)
             every { formatMessageUseCase(any(), any()) } returns "test message"
             coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.success(Unit)
-            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
 
             useCase(chatId)
 
@@ -157,7 +153,6 @@ class SendCurrencyRatesUseCaseTest {
             coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
             coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
             coEvery { checkThresholdsUseCase(any()) } returns Result.success(emptyList()) // Нет алертов
-            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
 
             // Act
             val result = useCase(chatId)
@@ -174,25 +169,6 @@ class SendCurrencyRatesUseCaseTest {
             coVerify(exactly = 1) { historyRepository.saveRecord(rates, any()) }
         }
 
-        @Test
-        fun `должен очистить старые записи после сохранения`() = runTest {
-            // Arrange
-            val chatId = TestFixtures.TEST_CHAT_ID
-            val rates = TestFixtures.sampleCurrencyRate
-            val removedCount = 5
-
-            coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
-            coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
-            coEvery { checkThresholdsUseCase(any()) } returns Result.success(emptyList())
-            coEvery { historyRepository.cleanOldRecords(30) } returns Result.success(removedCount)
-
-            // Act
-            val result = useCase(chatId)
-
-            // Assert
-            result.isSuccess shouldBe true
-            coVerify { historyRepository.cleanOldRecords(30) }
-        }
     }
 
     @Nested
@@ -256,7 +232,6 @@ class SendCurrencyRatesUseCaseTest {
             coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
             coEvery { historyRepository.saveRecord(any(), any()) } returns Result.failure(historyError)
             coEvery { checkThresholdsUseCase(any()) } returns Result.success(emptyList())
-            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
 
             // Act
             val result = useCase(chatId)
@@ -265,27 +240,6 @@ class SendCurrencyRatesUseCaseTest {
             result.isSuccess shouldBe true
 
             coVerify { historyRepository.saveRecord(any(), any()) }
-            // Очистка все равно должна вызваться
-            coVerify { historyRepository.cleanOldRecords(30) }
-        }
-
-        @Test
-        fun `должен успешно завершиться даже если не удалось очистить старые записи`() = runTest {
-            // Arrange
-            val chatId = TestFixtures.TEST_CHAT_ID
-            val rates = TestFixtures.sampleCurrencyRate
-            val cleanError = Exception("Failed to clean old records")
-
-            coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
-            coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
-            coEvery { checkThresholdsUseCase(any()) } returns Result.success(emptyList())
-            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.failure(cleanError)
-
-            // Act
-            val result = useCase(chatId)
-
-            // Assert - UseCase должен завершиться успешно несмотря на ошибку очистки
-            result.isSuccess shouldBe true
         }
 
         @Test
@@ -298,7 +252,6 @@ class SendCurrencyRatesUseCaseTest {
             coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
             coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
             coEvery { checkThresholdsUseCase(any()) } returns Result.failure(thresholdError)
-            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
 
             // Act
             val result = useCase(chatId)
@@ -322,7 +275,6 @@ class SendCurrencyRatesUseCaseTest {
             every { formatMessageUseCase(any(), any()) } returns "test message"
             coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.success(Unit)
             coEvery { sentAlertRepository.recordSentAlert(any()) } returns Result.failure(Exception("DB error"))
-            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
 
             val result = useCase(chatId)
 
@@ -347,7 +299,6 @@ class SendCurrencyRatesUseCaseTest {
             coEvery { checkThresholdsUseCase(any()) } returns Result.success(listOf(alert))
             every { formatMessageUseCase(any(), any()) } returns "test message"
             coEvery { telegramRepository.sendMessage(any(), any()) } returns Result.success(Unit)
-            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
 
             // Act
             val result = useCase(chatId)
@@ -366,7 +317,6 @@ class SendCurrencyRatesUseCaseTest {
             coEvery { currencyRepository.getCurrentRates() } returns Result.success(rates)
             coEvery { historyRepository.saveRecord(any(), any()) } returns Result.success(Unit)
             coEvery { checkThresholdsUseCase(any()) } returns Result.success(emptyList())
-            coEvery { historyRepository.cleanOldRecords(any()) } returns Result.success(0)
 
             // Act
             useCase(chatId)

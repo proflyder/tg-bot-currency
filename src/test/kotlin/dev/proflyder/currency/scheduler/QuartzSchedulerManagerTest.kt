@@ -50,7 +50,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `должен успешно запустить Quartz Scheduler`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act
             schedulerManager.start()
@@ -62,7 +62,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `scheduler должен быть в состоянии started после запуска`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act
             schedulerManager.start()
@@ -76,7 +76,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `должен зарегистрировать CurrencyRatesJob`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act
             schedulerManager.start()
@@ -93,7 +93,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `должен создать trigger с правильным cron выражением`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act
             schedulerManager.start()
@@ -110,7 +110,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `должен передать зависимости в JobDataMap`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act
             schedulerManager.start()
@@ -128,7 +128,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `должен запланировать следующее выполнение`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act
             schedulerManager.start()
@@ -149,7 +149,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `должен успешно остановить scheduler`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
             schedulerManager.start()
             val scheduler = StdSchedulerFactory.getDefaultScheduler()
 
@@ -163,7 +163,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `должен дождаться завершения текущих задач при остановке`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
             schedulerManager.start()
 
             // Act
@@ -178,7 +178,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `должен корректно обработать повторный вызов stop`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
             schedulerManager.start()
 
             // Act & Assert - не должно быть исключений
@@ -195,7 +195,7 @@ class QuartzSchedulerManagerTest {
         fun `должен поддерживать разные cron выражения`() {
             // Arrange - каждые 2 часа
             val customConfig = config.copy(schedulerCron = "0 0 */2 * * ?")
-            schedulerManager = QuartzSchedulerManager(customConfig, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(customConfig, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act
             schedulerManager.start()
@@ -212,7 +212,7 @@ class QuartzSchedulerManagerTest {
         fun `должен корректно работать с cron для запуска раз в день`() {
             // Arrange - каждый день в 9:00
             val customConfig = config.copy(schedulerCron = "0 0 9 * * ?")
-            schedulerManager = QuartzSchedulerManager(customConfig, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(customConfig, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act
             schedulerManager.start()
@@ -229,7 +229,7 @@ class QuartzSchedulerManagerTest {
         fun `должен корректно работать с cron для запуска раз в минуту (для тестов)`() {
             // Arrange - каждую минуту
             val customConfig = config.copy(schedulerCron = "0 * * * * ?")
-            schedulerManager = QuartzSchedulerManager(customConfig, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(customConfig, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act
             schedulerManager.start()
@@ -250,7 +250,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `должен поддерживать полный цикл start-stop-start`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act & Assert
             schedulerManager.start()
@@ -261,7 +261,7 @@ class QuartzSchedulerManagerTest {
             scheduler.isShutdown shouldBe true
 
             // После shutdown нужно создать новый instance
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
             schedulerManager.start()
             scheduler = StdSchedulerFactory.getDefaultScheduler()
             scheduler.isStarted shouldBe true
@@ -275,7 +275,7 @@ class QuartzSchedulerManagerTest {
         @Test
         fun `должен использовать misfire policy DoNothing`() {
             // Arrange
-            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase)
+            schedulerManager = QuartzSchedulerManager(config, sendCurrencyRatesUseCase, mockk(relaxed = true))
 
             // Act
             schedulerManager.start()

@@ -57,9 +57,9 @@ class SendCurrencyRatesUseCase(
                         logger.info("Skipping history save (manual trigger)")
                     }
 
-                    // 2. Проверяем трешхолды
+                    // 2. Проверяем трешхолды (при ручном триггере пропускаем дедупликацию)
                     logger.info("Checking thresholds...")
-                    val alertsResult = checkThresholdsUseCase(rates)
+                    val alertsResult = checkThresholdsUseCase(rates, skipDedup = forceNotification)
 
                     alertsResult.fold(
                         onSuccess = { alerts ->
@@ -104,19 +104,6 @@ class SendCurrencyRatesUseCase(
                         onFailure = { error ->
                             logger.error("Failed to check thresholds", error)
                             // Не падаем, продолжаем
-                        }
-                    )
-
-                    // 4. Очищаем старые записи (старше 30 дней)
-                    currencyHistoryRepository.cleanOldRecords(olderThanDays = 30).fold(
-                        onSuccess = { removedCount ->
-                            if (removedCount > 0) {
-                                logger.info("Cleaned $removedCount old records from history")
-                            }
-                        },
-                        onFailure = { error ->
-                            logger.error("Failed to clean old records", error)
-                            // Не падаем если не удалось очистить
                         }
                     )
 

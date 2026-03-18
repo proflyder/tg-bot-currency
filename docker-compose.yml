@@ -46,6 +46,8 @@ services:
       - ./config/promtail-config.yml:/etc/promtail/config.yml:ro
       # Читаем логи из того же volume что и currency-bot
       - currency-bot-logs:/var/log/currency-bot:ro
+      # Persistent positions — чтобы Promtail не переингестировал логи при рестарте
+      - promtail-data:/data
     command: -config.file=/etc/promtail/config.yml
     restart: unless-stopped
     # Подключаемся к сети monitoring для доступа к Loki
@@ -60,6 +62,8 @@ volumes:
   currency-bot-logs:
     driver: local
   currency-bot-data:
+    driver: local
+  promtail-data:
     driver: local
 
 # ═══════════════════════════════════════════════════════════════════

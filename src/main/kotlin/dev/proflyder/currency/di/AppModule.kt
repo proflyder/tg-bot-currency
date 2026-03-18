@@ -60,7 +60,8 @@ val appModule = module {
         CurrencyHistoryRepositoryImpl(get<AppConfig>().databasePath)
     }
     single<SentAlertRepository> {
-        SentAlertRepositoryImpl(get<AppConfig>().databasePath)
+        val historyRepo = get<CurrencyHistoryRepository>() as CurrencyHistoryRepositoryImpl
+        SentAlertRepositoryImpl(historyRepo.database)
     }
 
     // Domain Layer - Use Cases
@@ -77,7 +78,7 @@ val appModule = module {
     single { TelegramWebhookController(get()) }
 
     // Scheduler
-    single { QuartzSchedulerManager(get(), get()) }
+    single { QuartzSchedulerManager(get(), get(), get()) }
 
     // Telegram Bot
     single { TelegramCommandHandler(get(), get()) } // TelegramApi, TriggerApiClient

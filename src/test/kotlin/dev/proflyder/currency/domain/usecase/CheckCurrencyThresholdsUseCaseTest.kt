@@ -540,6 +540,74 @@ class CheckCurrencyThresholdsUseCaseTest {
     }
 
     @Nested
+    @DisplayName("skipDedup")
+    inner class SkipDedup {
+
+        @Test
+        fun `skipDedup=true должен пропустить дедупликацию и вернуть все алерты`() = runTest {
+            val currentRates = CurrencyRate(
+                usdToKzt = ExchangeRate(buy = 488.0, sell = 488.0),
+                rubToKzt = ExchangeRate(buy = 4.90, sell = 4.90)
+            )
+
+            val historicalRecord = CurrencyRateRecord(
+                timestamp = Clock.System.now() - 2.hours,
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(buy = 485.0, sell = 485.0),
+                    rubToKzt = ExchangeRateSnapshot(buy = 4.90, sell = 4.90)
+                )
+            )
+
+            coEvery { historyRepository.getRecordBefore(any()) } returns Result.success(historicalRecord)
+
+            // Деdup подавил бы — тот же курс
+            coEvery { sentAlertRepository.getLastSentAlert(any()) } answers {
+                Result.success(
+                    SentAlert(
+                        key = firstArg(),
+                        level = AlertLevel.WARNING,
+                        direction = ChangeDirection.UP,
+                        rateAtAlert = 488.0,
+                        changePercent = 0.62,
+                        sentAt = Clock.System.now() - 1.hours
+                    )
+                )
+            }
+
+            // Без skipDedup — подавляет
+            val suppressed = useCase(currentRates, skipDedup = false)
+            suppressed.getOrThrow().shouldBeEmpty()
+
+            // С skipDedup — показывает
+            val shown = useCase(currentRates, skipDedup = true)
+            (shown.getOrThrow().size > 0) shouldBe true
+        }
+
+        @Test
+        fun `skipDedup=true не должен вызывать sentAlertRepository`() = runTest {
+            val currentRates = CurrencyRate(
+                usdToKzt = ExchangeRate(buy = 488.0, sell = 488.0),
+                rubToKzt = ExchangeRate(buy = 4.90, sell = 4.90)
+            )
+
+            val historicalRecord = CurrencyRateRecord(
+                timestamp = Clock.System.now() - 2.hours,
+                rates = CurrencyRateSnapshot(
+                    usdToKzt = ExchangeRateSnapshot(buy = 485.0, sell = 485.0),
+                    rubToKzt = ExchangeRateSnapshot(buy = 4.90, sell = 4.90)
+                )
+            )
+
+            coEvery { historyRepository.getRecordBefore(any()) } returns Result.success(historicalRecord)
+
+            useCase(currentRates, skipDedup = true)
+
+            coVerify(exactly = 0) { sentAlertRepository.getLastSentAlert(any()) }
+            coVerify(exactly = 0) { sentAlertRepository.clearSentAlert(any()) }
+        }
+    }
+
+    @Nested
     @DisplayName("Обработка ошибок")
     inner class ErrorHandling {
 

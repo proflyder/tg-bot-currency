@@ -186,6 +186,45 @@ class GetCurrencyHistoryUseCaseTest {
     }
 
     @Nested
+    @DisplayName("Фильтрация по дате")
+    inner class DateRangeFiltering {
+
+        @Test
+        fun `должен вызвать getRecordsByDateRange при указании from и to`() = runTest {
+            val from = Instant.parse("2025-11-30T00:00:00Z")
+            val to = Instant.parse("2025-11-30T23:59:59Z")
+
+            coEvery { historyRepository.getRecordsByDateRange(from, to) } returns Result.success(emptyList())
+
+            val result = useCase(from = from, to = to)
+
+            result.isSuccess shouldBe true
+            coVerify(exactly = 1) { historyRepository.getRecordsByDateRange(from, to) }
+            coVerify(exactly = 0) { historyRepository.getAllRecords() }
+        }
+
+        @Test
+        fun `должен вызвать getAllRecords без параметров`() = runTest {
+            coEvery { historyRepository.getAllRecords() } returns Result.success(emptyList())
+
+            val result = useCase()
+
+            result.isSuccess shouldBe true
+            coVerify(exactly = 1) { historyRepository.getAllRecords() }
+        }
+
+        @Test
+        fun `должен вызвать getAllRecords если только from без to`() = runTest {
+            coEvery { historyRepository.getAllRecords() } returns Result.success(emptyList())
+
+            val result = useCase(from = Instant.parse("2025-11-30T00:00:00Z"), to = null)
+
+            result.isSuccess shouldBe true
+            coVerify(exactly = 1) { historyRepository.getAllRecords() }
+        }
+    }
+
+    @Nested
     @DisplayName("Граничные случаи")
     inner class EdgeCases {
 

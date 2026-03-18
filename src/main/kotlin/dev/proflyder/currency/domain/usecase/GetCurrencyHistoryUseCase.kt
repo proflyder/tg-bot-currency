@@ -3,9 +3,10 @@ package dev.proflyder.currency.domain.usecase
 import dev.proflyder.currency.domain.model.CurrencyRateRecord
 import dev.proflyder.currency.domain.repository.CurrencyHistoryRepository
 import dev.proflyder.currency.util.logger
+import kotlinx.datetime.Instant
 
 /**
- * UseCase для получения полной истории курсов валют
+ * UseCase для получения истории курсов валют
  */
 class GetCurrencyHistoryUseCase(
     private val currencyHistoryRepository: CurrencyHistoryRepository
@@ -13,21 +14,18 @@ class GetCurrencyHistoryUseCase(
     private val logger = logger()
 
     /**
-     * Получает полную историю курсов валют
-     * @return Список всех записей истории, отсортированный по времени (от новых к старым)
+     * Получает историю курсов валют (все или за указанный интервал)
+     * @param from Начало интервала (опционально)
+     * @param to Конец интервала (опционально)
+     * @return Список записей, отсортированный по времени (от новых к старым)
      */
-    suspend operator fun invoke(): Result<List<CurrencyRateRecord>> {
-        logger.info("Fetching currency history...")
-
-        return currencyHistoryRepository.getAllRecords().also { result ->
-            result.fold(
-                onSuccess = { records ->
-                    logger.info("Successfully fetched ${records.size} history records")
-                },
-                onFailure = { error ->
-                    logger.error("Failed to fetch currency history", error)
-                }
-            )
+    suspend operator fun invoke(from: Instant? = null, to: Instant? = null): Result<List<CurrencyRateRecord>> {
+        if (from != null && to != null) {
+            logger.info("Fetching currency history from $from to $to")
+            return currencyHistoryRepository.getRecordsByDateRange(from, to)
         }
+
+        logger.info("Fetching full currency history...")
+        return currencyHistoryRepository.getAllRecords()
     }
 }

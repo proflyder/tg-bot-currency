@@ -9,44 +9,18 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.io.File
 
 class SentAlertRepositoryImpl(
-    databasePath: String
+    internal val database: Database
 ) : SentAlertRepository {
 
     private val logger = logger()
-    internal val database: Database
 
     init {
-        if (!databasePath.startsWith("mem:")) {
-            val dbFile = File(databasePath)
-            dbFile.parentFile?.mkdirs()
-        }
-
-        val jdbcUrl = if (databasePath.startsWith("mem:")) {
-            "jdbc:h2:$databasePath;DB_CLOSE_DELAY=-1"
-        } else {
-            val normalizedPath = when {
-                databasePath.startsWith("/") -> databasePath
-                databasePath.startsWith("~") -> databasePath
-                databasePath.startsWith("./") -> databasePath
-                databasePath.matches(Regex("^[A-Za-z]:.*")) -> databasePath
-                else -> "./$databasePath"
-            }
-            "jdbc:h2:file:$normalizedPath;DB_CLOSE_DELAY=-1"
-        }
-
-        database = Database.connect(
-            url = jdbcUrl,
-            driver = "org.h2.Driver"
-        )
-
         transaction(database) {
             SchemaUtils.create(SentAlertTable)
         }
-
-        logger.info("SentAlert database initialized at: $databasePath")
+        logger.info("SentAlertTable initialized")
     }
 
     override suspend fun getLastSentAlert(key: AlertKey): Result<SentAlert?> = runCatching {
@@ -76,7 +50,6 @@ class SentAlertRepositoryImpl(
     override suspend fun recordSentAlert(alert: SentAlert): Result<Unit> = runCatching {
         withContext(Dispatchers.IO) {
             transaction(database) {
-                // Upsert: delete existing + insert
                 SentAlertTable.deleteWhere {
                     (pair eq alert.key.pair.name) and
                             (period eq alert.key.period.name) and

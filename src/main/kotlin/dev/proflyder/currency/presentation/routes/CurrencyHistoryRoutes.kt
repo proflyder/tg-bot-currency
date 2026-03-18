@@ -14,7 +14,14 @@ fun Route.currencyHistoryRoutes(currencyHistoryController: CurrencyHistoryContro
         tags = listOf("Currency History")
         summary = "Получить историю курсов валют"
         description = """
-            Возвращает полную историю записей о курсах USD и RUB к тенге (KZT).
+            Возвращает историю записей о курсах USD и RUB к тенге (KZT).
+
+            Поддерживаемые query-параметры для фильтрации:
+            - `date` (опционально) — конкретный день в формате `YYYY-MM-DD`, например `2026-03-18`
+            - `from` (опционально) — начало диапазона, ISO 8601 instant, например `2026-03-01T00:00:00Z`
+            - `to` (опционально) — конец диапазона, ISO 8601 instant, например `2026-03-18T23:59:59Z`
+
+            Если ни один параметр не указан, возвращается полная история.
 
             Данные включают:
             - Временную метку записи (ISO 8601 format)
@@ -25,6 +32,23 @@ fun Route.currencyHistoryRoutes(currencyHistoryController: CurrencyHistoryContro
             Данные обновляются автоматически по расписанию через Quartz Scheduler.
         """.trimIndent()
         securitySchemeNames = listOf("UnkeyAuth")
+        request {
+            queryParameter<String>("date") {
+                description = "Фильтр по конкретному дню (формат YYYY-MM-DD)"
+                example("date") { value = "2026-03-18" }
+                required = false
+            }
+            queryParameter<String>("from") {
+                description = "Начало диапазона (ISO 8601 instant)"
+                example("from") { value = "2026-03-01T00:00:00Z" }
+                required = false
+            }
+            queryParameter<String>("to") {
+                description = "Конец диапазона (ISO 8601 instant)"
+                example("to") { value = "2026-03-18T23:59:59Z" }
+                required = false
+            }
+        }
         response {
             HttpStatusCode.OK to {
                 description = "Успешно получена история курсов"
@@ -41,6 +65,48 @@ fun Route.currencyHistoryRoutes(currencyHistoryController: CurrencyHistoryContro
                                 )
                             ),
                             totalCount = 1
+                        )
+                    }
+                    example("Фильтр по дате (date=2026-03-18)") {
+                        value = CurrencyHistoryResponseDto(
+                            records = listOf(
+                                CurrencyRateRecordDto(
+                                    timestamp = kotlinx.datetime.Instant.parse("2026-03-18T09:00:00Z"),
+                                    rates = CurrencyRatesDto(
+                                        usdToKzt = ExchangeRateDto(buy = 510.20, sell = 514.80),
+                                        rubToKzt = ExchangeRateDto(buy = 5.10, sell = 5.20)
+                                    )
+                                ),
+                                CurrencyRateRecordDto(
+                                    timestamp = kotlinx.datetime.Instant.parse("2026-03-18T15:00:00Z"),
+                                    rates = CurrencyRatesDto(
+                                        usdToKzt = ExchangeRateDto(buy = 511.00, sell = 515.50),
+                                        rubToKzt = ExchangeRateDto(buy = 5.12, sell = 5.22)
+                                    )
+                                )
+                            ),
+                            totalCount = 2
+                        )
+                    }
+                    example("Фильтр по диапазону (from/to)") {
+                        value = CurrencyHistoryResponseDto(
+                            records = listOf(
+                                CurrencyRateRecordDto(
+                                    timestamp = kotlinx.datetime.Instant.parse("2026-03-01T08:00:00Z"),
+                                    rates = CurrencyRatesDto(
+                                        usdToKzt = ExchangeRateDto(buy = 505.00, sell = 509.00),
+                                        rubToKzt = ExchangeRateDto(buy = 5.00, sell = 5.10)
+                                    )
+                                ),
+                                CurrencyRateRecordDto(
+                                    timestamp = kotlinx.datetime.Instant.parse("2026-03-10T12:00:00Z"),
+                                    rates = CurrencyRatesDto(
+                                        usdToKzt = ExchangeRateDto(buy = 507.50, sell = 511.50),
+                                        rubToKzt = ExchangeRateDto(buy = 5.05, sell = 5.15)
+                                    )
+                                )
+                            ),
+                            totalCount = 2
                         )
                     }
                 }

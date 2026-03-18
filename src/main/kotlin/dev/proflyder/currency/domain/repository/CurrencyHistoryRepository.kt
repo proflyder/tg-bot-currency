@@ -37,6 +37,14 @@ interface CurrencyHistoryRepository {
     suspend fun getAllRecords(): Result<List<CurrencyRateRecord>>
 
     /**
+     * Получить записи за временной интервал
+     * @param from Начало интервала (включительно)
+     * @param to Конец интервала (включительно)
+     * @return Список записей, отсортированный по времени (от новых к старым)
+     */
+    suspend fun getRecordsByDateRange(from: Instant, to: Instant): Result<List<CurrencyRateRecord>>
+
+    /**
      * Получить последнюю (самую свежую) запись курсов
      * @return Последняя запись или null если история пуста
      */

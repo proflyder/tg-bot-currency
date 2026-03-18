@@ -31,7 +31,7 @@ class CheckCurrencyThresholdsUseCase(
      * @param currentRates Текущие курсы валют
      * @return Список алертов (пустой если ничего не превышено)
      */
-    suspend operator fun invoke(currentRates: CurrencyRate): Result<List<CurrencyAlert>> = runCatching {
+    suspend operator fun invoke(currentRates: CurrencyRate, skipDedup: Boolean = false): Result<List<CurrencyAlert>> = runCatching {
         logger.info("Checking currency thresholds...")
 
         val alerts = mutableListOf<CurrencyAlert>()
@@ -55,7 +55,8 @@ class CheckCurrencyThresholdsUseCase(
                             currentRate = currentRates.usdToKzt.sell,
                             historicalRate = historicalRecord.rates.usdToKzt.sell,
                             thresholdConfig = thresholdConfig,
-                            alerts = alerts
+                            alerts = alerts,
+                            skipDedup = skipDedup
                         )
 
                         // Проверяем USD → KZT (BUY)
@@ -65,7 +66,8 @@ class CheckCurrencyThresholdsUseCase(
                             currentRate = currentRates.usdToKzt.buy,
                             historicalRate = historicalRecord.rates.usdToKzt.buy,
                             thresholdConfig = thresholdConfig,
-                            alerts = alerts
+                            alerts = alerts,
+                            skipDedup = skipDedup
                         )
 
                         // Проверяем RUB → KZT (SELL)
@@ -75,7 +77,8 @@ class CheckCurrencyThresholdsUseCase(
                             currentRate = currentRates.rubToKzt.sell,
                             historicalRate = historicalRecord.rates.rubToKzt.sell,
                             thresholdConfig = thresholdConfig,
-                            alerts = alerts
+                            alerts = alerts,
+                            skipDedup = skipDedup
                         )
 
                         // Проверяем RUB → KZT (BUY)
@@ -85,7 +88,8 @@ class CheckCurrencyThresholdsUseCase(
                             currentRate = currentRates.rubToKzt.buy,
                             historicalRate = historicalRecord.rates.rubToKzt.buy,
                             thresholdConfig = thresholdConfig,
-                            alerts = alerts
+                            alerts = alerts,
+                            skipDedup = skipDedup
                         )
                     }
                 },
@@ -113,21 +117,26 @@ class CheckCurrencyThresholdsUseCase(
         currentRate: Double,
         historicalRate: Double,
         thresholdConfig: ThresholdConfig,
-        alerts: MutableList<CurrencyAlert>
+        alerts: MutableList<CurrencyAlert>,
+        skipDedup: Boolean = false
     ) {
         val key = AlertKey(pair, thresholdConfig.period, rateType)
         val candidate = checkPairThresholds(pair, rateType, currentRate, historicalRate, thresholdConfig)
 
         if (candidate != null) {
-            // Есть превышение порога — проверяем дедупликацию
-            val lastSent = sentAlertRepository.getLastSentAlert(key).getOrNull()
-
-            if (shouldSendAlert(candidate, lastSent, thresholdConfig)) {
+            if (skipDedup) {
                 alerts.add(candidate)
             } else {
-                logger.debug("Suppressing duplicate alert for ${pair.displayName} (${rateType.displayName}) ${thresholdConfig.period.displayName}")
+                // Есть превышение порога — проверяем дедупликацию
+                val lastSent = sentAlertRepository.getLastSentAlert(key).getOrNull()
+
+                if (shouldSendAlert(candidate, lastSent, thresholdConfig)) {
+                    alerts.add(candidate)
+                } else {
+                    logger.debug("Suppressing duplicate alert for ${pair.displayName} (${rateType.displayName}) ${thresholdConfig.period.displayName}")
+                }
             }
-        } else {
+        } else if (!skipDedup) {
             // Порог не превышен — очищаем запись если была
             sentAlertRepository.clearSentAlert(key).onFailure { error ->
                 logger.error("Failed to clear sent alert for $key", error)

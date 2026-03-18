@@ -181,6 +181,39 @@ class CurrencyHistoryRepositoryImpl(
         }
     }
 
+    override suspend fun getRecordsByDateRange(from: Instant, to: Instant): Result<List<CurrencyRateRecord>> = runCatching {
+        withContext(Dispatchers.IO) {
+            transaction(database) {
+                logger.info("Fetching records from $from to $to")
+
+                val records = CurrencyHistoryTable
+                    .select {
+                        (CurrencyHistoryTable.timestamp greaterEq from) and
+                                (CurrencyHistoryTable.timestamp lessEq to)
+                    }
+                    .orderBy(CurrencyHistoryTable.timestamp, SortOrder.DESC)
+                    .map { row ->
+                        CurrencyRateRecord(
+                            timestamp = row[CurrencyHistoryTable.timestamp],
+                            rates = CurrencyRateSnapshot(
+                                usdToKzt = ExchangeRateSnapshot(
+                                    buy = row[CurrencyHistoryTable.usdBuy],
+                                    sell = row[CurrencyHistoryTable.usdSell]
+                                ),
+                                rubToKzt = ExchangeRateSnapshot(
+                                    buy = row[CurrencyHistoryTable.rubBuy],
+                                    sell = row[CurrencyHistoryTable.rubSell]
+                                )
+                            )
+                        )
+                    }
+
+                logger.info("Fetched ${records.size} records for date range")
+                records
+            }
+        }
+    }
+
     override suspend fun getLatestRecord(): Result<CurrencyRateRecord?> = runCatching {
         withContext(Dispatchers.IO) {
             transaction(database) {
