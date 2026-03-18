@@ -7,9 +7,11 @@ import dev.proflyder.currency.data.remote.telegram.TelegramApi
 import dev.proflyder.currency.data.remote.unkey.UnkeyClient
 import dev.proflyder.currency.data.repository.CurrencyHistoryRepositoryImpl
 import dev.proflyder.currency.data.repository.CurrencyRepositoryImpl
+import dev.proflyder.currency.data.repository.SentAlertRepositoryImpl
 import dev.proflyder.currency.data.repository.TelegramRepositoryImpl
 import dev.proflyder.currency.domain.repository.CurrencyHistoryRepository
 import dev.proflyder.currency.domain.repository.CurrencyRepository
+import dev.proflyder.currency.domain.repository.SentAlertRepository
 import dev.proflyder.currency.domain.repository.TelegramRepository
 import dev.proflyder.currency.domain.telegram.TelegramCommandHandler
 import dev.proflyder.currency.domain.usecase.*
@@ -57,11 +59,14 @@ val appModule = module {
     single<CurrencyHistoryRepository> {
         CurrencyHistoryRepositoryImpl(get<AppConfig>().databasePath)
     }
+    single<SentAlertRepository> {
+        SentAlertRepositoryImpl(get<AppConfig>().databasePath)
+    }
 
     // Domain Layer - Use Cases
-    single { CheckCurrencyThresholdsUseCase(get()) }
+    single { CheckCurrencyThresholdsUseCase(get(), get()) }
     single { FormatCurrencyMessageUseCase() }
-    single { SendCurrencyRatesUseCase(get(), get(), get(), get(), get()) }
+    single { SendCurrencyRatesUseCase(get(), get(), get(), get(), get(), get()) }
     single { GetCurrencyHistoryUseCase(get()) }
     single { GetLatestCurrencyRateUseCase(get()) }
     single { DeleteCurrencyHistoryUseCase(get()) }

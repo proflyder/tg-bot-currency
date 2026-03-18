@@ -105,6 +105,12 @@ class KursKzParser(
             throw Exception("No RUB rates found")
         }
 
+        // Фильтруем аномальные значения (опечатки операторов) перед расчётом средних
+        val filteredUsdBuy = removeOutliers(usdRates.map { it.first }, "USD buy")
+        val filteredUsdSell = removeOutliers(usdRates.map { it.second }, "USD sell")
+        val filteredRubBuy = removeOutliers(rubRates.map { it.first }, "RUB buy")
+        val filteredRubSell = removeOutliers(rubRates.map { it.second }, "RUB sell")
+
         // Вычисляем средние значения из топ-5 самых выгодных курсов
         // Для покупки валюты (я покупаю USD за KZT):
         //   - На сайте это "sell" (обменник продает мне валюту)
@@ -119,22 +125,22 @@ class KursKzParser(
         val topCount = 5
 
         // USD: покупка (мне нужен минимальный sell)
-        val usdSellSorted = usdRates.map { it.second }.sorted()
+        val usdSellSorted = filteredUsdSell.sorted()
         val topUsdSell = usdSellSorted.take(topCount.coerceAtMost(usdSellSorted.size))
         val avgUsdSell = topUsdSell.average()
 
         // USD: продажа (мне нужен максимальный buy)
-        val usdBuySorted = usdRates.map { it.first }.sortedDescending()
+        val usdBuySorted = filteredUsdBuy.sortedDescending()
         val topUsdBuy = usdBuySorted.take(topCount.coerceAtMost(usdBuySorted.size))
         val avgUsdBuy = topUsdBuy.average()
 
         // RUB: покупка (мне нужен минимальный sell)
-        val rubSellSorted = rubRates.map { it.second }.sorted()
+        val rubSellSorted = filteredRubSell.sorted()
         val topRubSell = rubSellSorted.take(topCount.coerceAtMost(rubSellSorted.size))
         val avgRubSell = topRubSell.average()
 
         // RUB: продажа (мне нужен максимальный buy)
-        val rubBuySorted = rubRates.map { it.first }.sortedDescending()
+        val rubBuySorted = filteredRubBuy.sortedDescending()
         val topRubBuy = rubBuySorted.take(topCount.coerceAtMost(rubBuySorted.size))
         val avgRubBuy = topRubBuy.average()
 
@@ -155,5 +161,33 @@ class KursKzParser(
             usdToKzt = ExchangeRate(buy = avgUsdBuy, sell = avgUsdSell),
             rubToKzt = ExchangeRate(buy = avgRubBuy, sell = avgRubSell)
         )
+    }
+
+    /**
+     * Удаляет аномальные значения (выбросы) с помощью метода IQR (Interquartile Range).
+     * Например, если оператор обменника ввёл 5000 вместо 500.
+     */
+    private fun removeOutliers(values: List<Double>, label: String): List<Double> {
+        if (values.size < 4) return values
+
+        val sorted = values.sorted()
+        val q1Index = sorted.size / 4
+        val q3Index = sorted.size * 3 / 4
+        val q1 = sorted[q1Index]
+        val q3 = sorted[q3Index]
+        val iqr = q3 - q1
+
+        val lowerBound = q1 - 1.5 * iqr
+        val upperBound = q3 + 1.5 * iqr
+
+        val filtered = values.filter { it in lowerBound..upperBound }
+
+        if (filtered.size < values.size) {
+            val removed = values.size - filtered.size
+            logger.warn("Removed $removed outlier(s) from $label rates (bounds: %.2f..%.2f)".format(lowerBound, upperBound))
+        }
+
+        // Fallback: если фильтрация убрала всё, возвращаем оригинал
+        return filtered.ifEmpty { values }
     }
 }

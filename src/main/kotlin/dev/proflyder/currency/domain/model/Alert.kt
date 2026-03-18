@@ -37,12 +37,21 @@ enum class ChangeDirection {
 }
 
 /**
+ * Тип курса (покупка/продажа)
+ */
+enum class RateType(val displayName: String) {
+    BUY("покупка"),
+    SELL("продажа")
+}
+
+/**
  * Алерт об изменении курса
  */
 data class CurrencyAlert(
     val level: AlertLevel,
     val period: AlertPeriod,
     val pair: CurrencyPair,
+    val rateType: RateType,
     val direction: ChangeDirection,
     val changePercent: Double,
     val oldRate: Double,

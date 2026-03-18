@@ -93,6 +93,7 @@ class FormatCurrencyMessageUseCaseTest {
                 level = AlertLevel.WARNING,
                 period = AlertPeriod.DAY,
                 pair = CurrencyPair.USD_TO_KZT,
+                rateType = RateType.SELL,
                 direction = ChangeDirection.UP,
                 changePercent = 1.5,
                 oldRate = 480.0,
@@ -114,6 +115,7 @@ class FormatCurrencyMessageUseCaseTest {
                 level = AlertLevel.WARNING,
                 period = AlertPeriod.HOUR,
                 pair = CurrencyPair.USD_TO_KZT,
+                rateType = RateType.SELL,
                 direction = ChangeDirection.UP,
                 changePercent = 0.8,
                 oldRate = 480.0,
@@ -127,12 +129,35 @@ class FormatCurrencyMessageUseCaseTest {
             message shouldContain "📈" // Emoji роста
             message shouldContain "🇺🇸" // Флаг США
             message shouldContain "USD → KZT"
+            message shouldContain "(продажа)" // Тип курса
             message shouldContain "вырос"
             val hasPercent = message.contains("0,80") || message.contains("0.80")
             hasPercent shouldBe true
             message shouldContain "час" // Период
             message shouldContain "480" // Старый курс
             message shouldContain "483" // Новый курс
+        }
+
+        @Test
+        fun `должен отформатировать WARNING алерт с типом BUY`() {
+            // Arrange
+            val rates = TestFixtures.sampleCurrencyRate
+            val alert = CurrencyAlert(
+                level = AlertLevel.WARNING,
+                period = AlertPeriod.HOUR,
+                pair = CurrencyPair.USD_TO_KZT,
+                rateType = RateType.BUY,
+                direction = ChangeDirection.UP,
+                changePercent = 0.8,
+                oldRate = 480.0,
+                newRate = 483.84
+            )
+
+            // Act
+            val message = useCase(rates, listOf(alert))
+
+            // Assert
+            message shouldContain "(покупка)"
         }
 
         @Test
@@ -143,6 +168,7 @@ class FormatCurrencyMessageUseCaseTest {
                 level = AlertLevel.WARNING,
                 period = AlertPeriod.WEEK,
                 pair = CurrencyPair.RUB_TO_KZT,
+                rateType = RateType.SELL,
                 direction = ChangeDirection.DOWN,
                 changePercent = -2.5,
                 oldRate = 5.00,
@@ -156,6 +182,7 @@ class FormatCurrencyMessageUseCaseTest {
             message shouldContain "📉" // Emoji падения
             message shouldContain "🇷🇺" // Флаг России
             message shouldContain "RUB → KZT"
+            message shouldContain "(продажа)"
             message shouldContain "упал"
             val hasPercent = message.contains("2,50") || message.contains("2.50")
             hasPercent shouldBe true
@@ -171,6 +198,7 @@ class FormatCurrencyMessageUseCaseTest {
                     level = AlertLevel.WARNING,
                     period = AlertPeriod.DAY,
                     pair = CurrencyPair.USD_TO_KZT,
+                    rateType = RateType.SELL,
                     direction = ChangeDirection.UP,
                     changePercent = 1.2,
                     oldRate = 480.0,
@@ -180,6 +208,7 @@ class FormatCurrencyMessageUseCaseTest {
                     level = AlertLevel.WARNING,
                     period = AlertPeriod.HOUR,
                     pair = CurrencyPair.RUB_TO_KZT,
+                    rateType = RateType.BUY,
                     direction = ChangeDirection.DOWN,
                     changePercent = -0.6,
                     oldRate = 4.95,
@@ -212,6 +241,7 @@ class FormatCurrencyMessageUseCaseTest {
                 level = AlertLevel.CRITICAL,
                 period = AlertPeriod.MONTH,
                 pair = CurrencyPair.USD_TO_KZT,
+                rateType = RateType.SELL,
                 direction = ChangeDirection.UP,
                 changePercent = 5.5,
                 oldRate = 460.0,
@@ -233,6 +263,7 @@ class FormatCurrencyMessageUseCaseTest {
                 level = AlertLevel.CRITICAL,
                 period = AlertPeriod.DAY,
                 pair = CurrencyPair.USD_TO_KZT,
+                rateType = RateType.SELL,
                 direction = ChangeDirection.DOWN,
                 changePercent = -2.5,
                 oldRate = 490.0,
@@ -246,6 +277,7 @@ class FormatCurrencyMessageUseCaseTest {
             message shouldContain "🚨 <b>КРИТИЧЕСКИЕ ИЗМЕНЕНИЯ</b>"
             message shouldContain "📉"
             message shouldContain "USD → KZT"
+            message shouldContain "(продажа)"
             message shouldContain "упал"
             val hasPercent = message.contains("2,50") || message.contains("2.50")
             hasPercent shouldBe true
@@ -266,6 +298,7 @@ class FormatCurrencyMessageUseCaseTest {
                     level = AlertLevel.WARNING,
                     period = AlertPeriod.HOUR,
                     pair = CurrencyPair.USD_TO_KZT,
+                    rateType = RateType.SELL,
                     direction = ChangeDirection.UP,
                     changePercent = 0.8,
                     oldRate = 480.0,
@@ -275,6 +308,7 @@ class FormatCurrencyMessageUseCaseTest {
                     level = AlertLevel.CRITICAL,
                     period = AlertPeriod.WEEK,
                     pair = CurrencyPair.RUB_TO_KZT,
+                    rateType = RateType.BUY,
                     direction = ChangeDirection.DOWN,
                     changePercent = -4.2,
                     oldRate = 5.10,
@@ -306,6 +340,7 @@ class FormatCurrencyMessageUseCaseTest {
                     level = AlertLevel.WARNING,
                     period = AlertPeriod.HOUR,
                     pair = CurrencyPair.USD_TO_KZT,
+                    rateType = RateType.SELL,
                     direction = ChangeDirection.UP,
                     changePercent = 0.7,
                     oldRate = 480.0,
@@ -315,6 +350,7 @@ class FormatCurrencyMessageUseCaseTest {
                     level = AlertLevel.WARNING,
                     period = AlertPeriod.DAY,
                     pair = CurrencyPair.RUB_TO_KZT,
+                    rateType = RateType.SELL,
                     direction = ChangeDirection.UP,
                     changePercent = 1.5,
                     oldRate = 4.80,
@@ -325,6 +361,7 @@ class FormatCurrencyMessageUseCaseTest {
                     level = AlertLevel.CRITICAL,
                     period = AlertPeriod.MONTH,
                     pair = CurrencyPair.USD_TO_KZT,
+                    rateType = RateType.SELL,
                     direction = ChangeDirection.UP,
                     changePercent = 6.0,
                     oldRate = 460.0,
@@ -368,6 +405,7 @@ class FormatCurrencyMessageUseCaseTest {
                     level = AlertLevel.WARNING,
                     period = period,
                     pair = CurrencyPair.USD_TO_KZT,
+                    rateType = RateType.SELL,
                     direction = ChangeDirection.UP,
                     changePercent = 1.0,
                     oldRate = 480.0,

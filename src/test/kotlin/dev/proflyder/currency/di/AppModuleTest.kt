@@ -4,9 +4,11 @@ import dev.proflyder.currency.data.remote.parser.KursKzParser
 import dev.proflyder.currency.data.remote.telegram.TelegramApi
 import dev.proflyder.currency.data.repository.CurrencyHistoryRepositoryImpl
 import dev.proflyder.currency.data.repository.CurrencyRepositoryImpl
+import dev.proflyder.currency.data.repository.SentAlertRepositoryImpl
 import dev.proflyder.currency.data.repository.TelegramRepositoryImpl
 import dev.proflyder.currency.domain.repository.CurrencyHistoryRepository
 import dev.proflyder.currency.domain.repository.CurrencyRepository
+import dev.proflyder.currency.domain.repository.SentAlertRepository
 import dev.proflyder.currency.domain.repository.TelegramRepository
 import dev.proflyder.currency.domain.usecase.SendCurrencyRatesUseCase
 import dev.proflyder.currency.scheduler.QuartzSchedulerManager
@@ -70,6 +72,7 @@ class AppModuleTest : KoinTest {
             val currencyRepo = get<CurrencyRepository>()
             val telegramRepo = get<TelegramRepository>()
             val historyRepo = get<CurrencyHistoryRepository>()
+            val sentAlertRepo = get<SentAlertRepository>()
             val useCase = get<SendCurrencyRatesUseCase>()
             val scheduler = get<QuartzSchedulerManager>()
 
@@ -78,6 +81,7 @@ class AppModuleTest : KoinTest {
             currencyRepo shouldNotBe null
             telegramRepo shouldNotBe null
             historyRepo shouldNotBe null
+            sentAlertRepo shouldNotBe null
             useCase shouldNotBe null
             scheduler shouldNotBe null
         }
@@ -176,6 +180,24 @@ class AppModuleTest : KoinTest {
             // Assert
             repository shouldNotBe null
             repository.shouldBeInstanceOf<TelegramRepositoryImpl>()
+        }
+
+        @Test
+        fun `должен предоставить SentAlertRepository`() {
+            // Arrange
+            startKoin {
+                modules(
+                    module { single { createTestConfig() } },
+                    appModule
+                )
+            }
+
+            // Act
+            val repository = get<SentAlertRepository>()
+
+            // Assert
+            repository shouldNotBe null
+            repository.shouldBeInstanceOf<SentAlertRepositoryImpl>()
         }
 
         @Test
@@ -328,6 +350,10 @@ class AppModuleTest : KoinTest {
             val historyRepo1 = get<CurrencyHistoryRepository>()
             val historyRepo2 = get<CurrencyHistoryRepository>()
             historyRepo1 shouldBe historyRepo2
+
+            val sentAlertRepo1 = get<SentAlertRepository>()
+            val sentAlertRepo2 = get<SentAlertRepository>()
+            sentAlertRepo1 shouldBe sentAlertRepo2
 
             val useCase1 = get<SendCurrencyRatesUseCase>()
             val useCase2 = get<SendCurrencyRatesUseCase>()

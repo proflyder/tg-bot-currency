@@ -1,7 +1,10 @@
 package dev.proflyder.currency.domain.usecase
 
+import dev.proflyder.currency.domain.model.AlertKey
+import dev.proflyder.currency.domain.model.SentAlert
 import dev.proflyder.currency.domain.repository.CurrencyHistoryRepository
 import dev.proflyder.currency.domain.repository.CurrencyRepository
+import dev.proflyder.currency.domain.repository.SentAlertRepository
 import dev.proflyder.currency.domain.repository.TelegramRepository
 import dev.proflyder.currency.util.logger
 import kotlinx.datetime.Clock
@@ -13,7 +16,8 @@ class SendCurrencyRatesUseCase(
     private val telegramRepository: TelegramRepository,
     private val currencyHistoryRepository: CurrencyHistoryRepository,
     private val checkThresholdsUseCase: CheckCurrencyThresholdsUseCase,
-    private val formatMessageUseCase: FormatCurrencyMessageUseCase
+    private val formatMessageUseCase: FormatCurrencyMessageUseCase,
+    private val sentAlertRepository: SentAlertRepository
 ) {
     private val logger = logger()
     private val businessLogger = LoggerFactory.getLogger("business.events")
@@ -78,6 +82,21 @@ class SendCurrencyRatesUseCase(
                                     return Result.failure(sendResult.exceptionOrNull() ?: Exception("Unknown error"))
                                 }
                                 logger.info("Message sent successfully")
+
+                                // 3a. Записываем отправленные алерты для дедупликации
+                                for (alert in alerts) {
+                                    val sentAlert = SentAlert(
+                                        key = AlertKey(alert.pair, alert.period, alert.rateType),
+                                        level = alert.level,
+                                        direction = alert.direction,
+                                        rateAtAlert = alert.newRate,
+                                        changePercent = alert.changePercent,
+                                        sentAt = timestamp
+                                    )
+                                    sentAlertRepository.recordSentAlert(sentAlert).onFailure { error ->
+                                        logger.error("Failed to record sent alert for ${alert.pair.displayName}", error)
+                                    }
+                                }
                             } else {
                                 logger.info("No thresholds exceeded, skipping Telegram notification")
                             }
